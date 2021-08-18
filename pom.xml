@@ -20,6 +20,7 @@
 
     <bouncycastle.version>1.68</bouncycastle.version>
     <okhttp.version>3.14.4</okhttp.version>
+    <scopt.version>4.0.0</scopt.version>
     <!--
     The Scala version that has been used for testing
     in 2.11.12
@@ -79,6 +80,14 @@
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-sse</artifactId>
       <version>${okhttp.version}</version>
+    </dependency>
+
+    <!-- SCOPT
+    -->
+    <dependency>
+      <groupId>com.github.scopt</groupId>
+      <artifactId>scopt_2.11</artifactId>
+      <version>${scopt.version}</version>
     </dependency>
 
   </dependencies>
