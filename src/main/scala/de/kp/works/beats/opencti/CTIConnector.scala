@@ -22,10 +22,15 @@ import de.kp.works.beats.ssl.SslOptions
 import okhttp3.Response
 import okhttp3.sse.{EventSource, EventSourceListener, EventSources}
 
+/**
+ * The [CTIConnector] connects & listens to the OpenCTI
+ * events stream via an SSE client and write these events
+ * to the provided output handler.
+ */
 class CTIConnector(
    endpoint: String,
    handler: CTIHandler,
-   authToken: Option[String],
+   authToken: Option[String] = None,
    sslOptions: Option[SslOptions] = None) {
 
   def stop(): Unit = {
@@ -67,6 +72,11 @@ class CTIConnector(
   }
 
   def restart(t:Throwable): Unit = {
+
+    val now = new java.util.Date().toString
+    println(s"[CTIConnector] $now - Restart due to: ${t.getLocalizedMessage}")
+
     start()
+
   }
 }

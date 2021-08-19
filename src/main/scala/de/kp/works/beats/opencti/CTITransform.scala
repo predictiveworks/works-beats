@@ -18,9 +18,23 @@ package de.kp.works.beats.opencti
  *
  */
 
+import com.google.gson.JsonObject
+
 object CTITransform {
 
   def transform(eventId:String, eventType:String, data:String):String = {
-    null
+
+    val json = new JsonObject
+
+    // TODO Introduce customized transformation before
+    // emitting the event again
+
+    json.addProperty("id", eventType)
+
+    json.addProperty("type", eventType)
+    json.addProperty("data", data)
+
+    json.toString
+
   }
 }

@@ -22,13 +22,31 @@ import akka.stream.scaladsl.SourceQueueWithComplete
 
 class CTIHandler(
     /*
-     * The queue is the output queue of the
-     * Akka based SSE mechanism
+     * The queue is the output queue of the Akka based SSE mechanism
      */
-    queue:SourceQueueWithComplete[String]) {
+    queue:Option[SourceQueueWithComplete[String]]) {
 
     def write(eventId:String, eventType:String, data:String):Unit = {
+      /*
+       * Guard to filter irrelevant messages
+       */
+      if (eventId == null || eventType == null || data == null) return
+      if (eventId.isEmpty || eventType.isEmpty || data.isEmpty) return
+      /*
+       * Transform the received event and republish
+       * as serialized [JsonObject]
+       */
       val serialized = CTITransform.transform(eventId, eventType, data)
-      queue.offer(serialized)
+      if (queue.isDefined)
+        queue.get.offer(serialized)
+
+      else {
+        /*
+         * An undefined queue can be useful for testing
+         * and publishes received events to the console
+         */
+        println(serialized)
+      }
+
     }
 }
