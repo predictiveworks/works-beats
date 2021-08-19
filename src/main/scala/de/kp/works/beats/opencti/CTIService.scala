@@ -18,11 +18,8 @@ package de.kp.works.beats.opencti
  *
  */
 
-import de.kp.works.beats.BeatsService
+import de.kp.works.beats.{BeatsConf, BeatsService}
 
-class CTIService extends BeatsService {
-
-  def start(config:Option[String] = None):Unit = {
-  }
+class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
 
 }

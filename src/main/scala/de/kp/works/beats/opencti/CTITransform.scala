@@ -19,7 +19,12 @@ package de.kp.works.beats.opencti
  */
 
 import com.google.gson.JsonObject
-
+/**
+ * OpenCTI events do not respect the NGSI format.
+ *
+ * This transformer can be used to harmonize the
+ * OpenCTI events to a standard format.
+ */
 object CTITransform {
 
   def transform(eventId:String, eventType:String, data:String):String = {

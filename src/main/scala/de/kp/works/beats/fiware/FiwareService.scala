@@ -18,10 +18,8 @@ package de.kp.works.beats.fiware
  *
  */
 
-import de.kp.works.beats.BeatsService
+import de.kp.works.beats.{BeatsConf, BeatsService}
 
-class FiwareService extends BeatsService {
+class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
-  def start(config:Option[String] = None):Unit = {
-  }
 }

@@ -18,8 +18,61 @@ package de.kp.works.beats
  *
  */
 
-trait BeatsService {
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.stream.ActorMaterializer
+import akka.util.Timeout
 
-  def start(config:Option[String] = None):Unit
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
+abstract class BeatsService(name:String) {
+
+  private var server:Option[Future[Http.ServerBinding]] = None
+  /**
+   * Akka 2.6 provides a default materializer out of the box, i.e., for Scala
+   * an implicit materializer is provided if there is an implicit ActorSystem
+   * available. This avoids leaking materializers and simplifies most stream
+   * use cases somewhat.
+   */
+  implicit val system: ActorSystem = ActorSystem(name)
+  implicit lazy val context: ExecutionContextExecutor = system.dispatcher
+
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  /**
+   * Common timeout for all Akka connection
+   */
+  implicit val timeout: Timeout = Timeout(5.seconds)
+
+  def start(config:Option[String] = None):Unit = {
+
+    BeatsConf.init(config)
+
+    if (!BeatsConf.isInit) {
+
+      val now = new java.util.Date().toString
+      throw new Exception(s"[ERROR] $now - Loading configuration failed and beat service is not started.")
+
+    }
+
+  }
+
+  def stop():Unit = {
+
+    if (server.isEmpty)
+      throw new Exception("Beat service was not launched.")
+
+    server.get
+      /*
+       * rigger unbinding from port
+       */
+      .flatMap(_.unbind())
+      /*
+       * Shut down application
+       */
+      .onComplete(_ => {
+        system.terminate()
+      })
+
+  }
 }

@@ -1,4 +1,7 @@
 package de.kp.works.beats
+
+import com.typesafe.config.{Config, ConfigFactory}
+
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -20,4 +23,65 @@ package de.kp.works.beats
 
 object BeatsConf {
 
+  private val path = "reference.conf"
+  /**
+   * This is the reference to the overall configuration
+   * file that holds all configuration required for this
+   * application
+   */
+  private var cfg: Option[Config] = None
+
+  val FIWARE_CONF  = "fiware"
+  val OPENCTI_CONF = "opencti"
+
+  def init(config: Option[String] = None): Boolean = {
+
+    if (cfg.isDefined) true
+    else {
+      try {
+
+        cfg = if (config.isDefined) {
+          /*
+           * An external configuration file is provided
+           * and must be transformed into a Config
+           */
+          Option(ConfigFactory.parseString(config.get))
+
+        } else {
+          /*
+           * The internal reference file is used to
+           * extract the required configurations
+           */
+          Option(ConfigFactory.load(path))
+
+        }
+        true
+
+      } catch {
+        case t: Throwable =>
+          false
+      }
+    }
+  }
+
+  def isInit: Boolean = {
+    cfg.isDefined
+  }
+
+  def getBeatCfg(name:String):Config = {
+
+    val now = new java.util.Date().toString
+
+    if (cfg.isEmpty) {
+      throw new Exception(s"[ERROR] $now - Configuration not initialized.")
+
+    }
+
+    name match {
+      case FIWARE_CONF  => cfg.get.getConfig(FIWARE_CONF)
+      case OPENCTI_CONF => cfg.get.getConfig(OPENCTI_CONF)
+      case _ =>
+        throw new Exception(s"[ERROR] $now - Unknown configuration request.")
+    }
+  }
 }
