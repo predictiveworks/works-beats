@@ -1,7 +1,4 @@
 package de.kp.works.beats
-
-import com.typesafe.config.{Config, ConfigFactory}
-
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -21,6 +18,8 @@ import com.typesafe.config.{Config, ConfigFactory}
  *
  */
 
+import com.typesafe.config.{Config, ConfigFactory}
+
 object BeatsConf {
 
   private val path = "reference.conf"
@@ -33,6 +32,8 @@ object BeatsConf {
 
   val FIWARE_CONF  = "fiware"
   val OPENCTI_CONF = "opencti"
+
+  val THINGSBOARD_CONF = "thingsboard"
 
   def init(config: Option[String] = None): Boolean = {
 
