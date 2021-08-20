@@ -18,11 +18,13 @@ package de.kp.works.beats.ssl
  *
  */
 
+import akka.http.scaladsl.{ConnectionContext, HttpsConnectionContext}
+import com.typesafe.config.Config
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+
 import java.security._
 import java.security.cert.X509Certificate
-
 import javax.net.ssl._
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 object SslOptions {
 
@@ -39,8 +41,8 @@ object SslOptions {
       new SslOptions(
         keystoreFile = Option(keystoreFile),
         keystoreType = Option(keystoreType),
-        keystorePassword = Option(keystorePassword),
-        keystoreAlgorithm = Option(keystoreAlgorithm))
+        keystorePass = Option(keystorePassword),
+        keystoreAlgo = Option(keystoreAlgorithm))
     }
 
     def buildStoreOptions(
@@ -53,8 +55,8 @@ object SslOptions {
       new SslOptions(
         keystoreFile = Option(keystoreFile),
         keystoreType = Option(keystoreType),
-        keystorePassword = Option(keystorePassword),
-        keystoreAlgorithm = Option(keystoreAlgorithm),
+        keystorePass = Option(keystorePassword),
+        keystoreAlgo = Option(keystoreAlgorithm),
         cipherSuites = Option(cipherSuites.toArray))
     }
 
@@ -71,12 +73,12 @@ object SslOptions {
       new SslOptions(
         keystoreFile = Option(keystoreFile),
         keystoreType = Option(keystoreType),
-        keystorePassword = Option(keystorePassword),
-        keystoreAlgorithm = Option(keystoreAlgorithm),
+        keystorePass = Option(keystorePassword),
+        keystoreAlgo = Option(keystoreAlgorithm),
         truststoreFile = Option(truststoreFile),
         truststoreType = Option(truststoreType),
-        truststorePassword = Option(truststorePassword),
-        truststoreAlgorithm = Option(truststoreAlgorithm))
+        truststorePass = Option(truststorePassword),
+        truststoreAlgo = Option(truststoreAlgorithm))
     }
 
     def buildStoreOptions(
@@ -93,12 +95,12 @@ object SslOptions {
       new SslOptions(
         keystoreFile = Option(keystoreFile),
         keystoreType = Option(keystoreType),
-        keystorePassword = Option(keystorePassword),
-        keystoreAlgorithm = Option(keystoreAlgorithm),
+        keystorePass = Option(keystorePassword),
+        keystoreAlgo = Option(keystoreAlgorithm),
         truststoreFile = Option(truststoreFile),
         truststoreType = Option(truststoreType),
-        truststorePassword = Option(truststorePassword),
-        truststoreAlgorithm = Option(truststoreAlgorithm),
+        truststorePass = Option(truststorePassword),
+        truststoreAlgo = Option(truststoreAlgorithm),
         cipherSuites = Option(cipherSuites.toArray))
     }
 
@@ -165,41 +167,141 @@ object SslOptions {
         cipherSuites = Option(cipherSuites.toArray))
 
     }
+  }
+  /**
+   * In [[akka-http]] version 10.0.x is no difference between
+   * client and service side HTTPS context
+   */
+  def buildClientConnectionContext(cfg:Config): HttpsConnectionContext = {
+    ConnectionContext.https(sslContext = buildSSLContext(cfg))
+  }
+
+  def buildServerConnectionContext(cfg:Config): HttpsConnectionContext = {
+    ConnectionContext.https(sslContext = buildSSLContext(cfg))
+  }
+
+  private def buildSSLContext(securityCfg:Config):SSLContext = {
+
+    val sslOptions = getSslOptions(securityCfg)
+    sslOptions.getSslContext
 
   }
+
+  private def getSslOptions(securityCfg:Config): SslOptions = {
+
+    val ksFile = {
+      val v = securityCfg.getString("ksFile")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val ksType = {
+      val v = securityCfg.getString("ksType")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val ksPass = {
+      val v = securityCfg.getString("ksPass")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val ksAlgo = {
+      val v = securityCfg.getString("ksAlgo")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val tsFile = {
+      val v = securityCfg.getString("tsFile")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val tsType = {
+      val v = securityCfg.getString("tsType")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val tsPass = {
+      val v = securityCfg.getString("tsPass")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val tsAlgo = {
+      val v = securityCfg.getString("tsAlgo")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val caCertFile = {
+      val v = securityCfg.getString("caCertFile")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val certFile = {
+      val v = securityCfg.getString("certFile")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val privateKeyFile = {
+      val v = securityCfg.getString("privateKeyFile")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    val privateKeyFilePass = {
+      val v = securityCfg.getString("privateKeyFilePass")
+      if (v.isEmpty) None else Option(v)
+    }
+
+    new SslOptions(
+      /* KEYSTORE SUPPORT */
+      keystoreFile = ksFile,
+      keystoreType = ksType,
+      keystorePass = ksPass,
+      keystoreAlgo = ksAlgo,
+
+      /* TRUSTSTORE SUPPORT */
+      truststoreFile = tsFile,
+      truststoreType = tsType,
+      truststorePass = tsPass,
+      truststoreAlgo = tsAlgo,
+
+      /* CERTIFICATE SUPPORT */
+      caCertFile         = caCertFile,
+      certFile           = certFile,
+      privateKeyFile     = privateKeyFile,
+      privateKeyFilePass = privateKeyFilePass)
+  }
+
 }
 
 class SslOptions(
 
-  val tlsVersion: String = "TLS",  
-    
+  val tlsVersion: String = "TLS",
+
   /* KEY STORE */
   val keystoreFile: Option[String] = None,
   val keystoreType: Option[String] = None,
-  val keystorePassword: Option[String] = None,
-  val keystoreAlgorithm: Option[String] = None,
+  val keystorePass: Option[String] = None,
+  val keystoreAlgo: Option[String] = None,
 
   /* TRUST STORE */
 
   val truststoreFile: Option[String] = None,
   val truststoreType: Option[String] = None,
-  val truststorePassword: Option[String] = None,
-  val truststoreAlgorithm: Option[String] = None,
+  val truststorePass: Option[String] = None,
+  val truststoreAlgo: Option[String] = None,
 
   /* CERTIFICATES */
-  
+
   val caCert: Option[X509Certificate] = None,
   val cert: Option[X509Certificate] = None,
   val privateKey: Option[PrivateKey] = None,
   val privateKeyPass: Option[String] = None,
 
   /* CERTIFICATES FILES */
-  
+
   val caCertFile: Option[String] = None,
   val certFile: Option[String] = None,
-  val privateKeyFile: Option[String] = None, 
+  val privateKeyFile: Option[String] = None,
   val privateKeyFilePass: Option[String] = None,
-  
+
   val cipherSuites: Option[Array[String]] = None) {
 
   def getCipherSuites: List[String] = {
@@ -220,8 +322,45 @@ class SslOptions(
 
   }
 
+  def getSslContext: SSLContext = {
+
+    Security.addProvider(new BouncyCastleProvider())
+
+    var keyManagers:Array[KeyManager] = null
+    var trustManagers:Array[TrustManager] = null
+
+    /** KEY STORE **/
+
+    val keyManagerFactory = getKeyManagerFactory
+    if (keyManagerFactory != null)
+      keyManagers = keyManagerFactory.getKeyManagers
+
+    /** TRUST STORE **/
+
+    val trustManagerFactory = getTrustManagerFactory
+    if (trustManagerFactory != null)
+      trustManagers = trustManagerFactory.getTrustManagers
+
+    val secureRandom = Option(new SecureRandom())
+    buildSslContext(keyManagers, trustManagers, secureRandom)
+
+  }
+
+  private def buildSslContext(keyManagers:Seq[KeyManager], trustManagers:Seq[TrustManager], secureRandom:Option[SecureRandom]) = {
+
+    val sslContext = SSLContext.getInstance(tlsVersion)
+
+    sslContext.init(nullIfEmpty(keyManagers.toArray), nullIfEmpty(trustManagers.toArray), secureRandom.orNull)
+    sslContext
+
+  }
+
+  private def nullIfEmpty[T](array: Array[T]) = {
+    if (array.isEmpty) null else array
+  }
+
   def getSslSocketFactory: SSLSocketFactory = {
-    
+
 		Security.addProvider(new BouncyCastleProvider())
 
 		val keyManagerFactory = getKeyManagerFactory
@@ -231,45 +370,45 @@ class SslOptions(
 		sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, new java.security.SecureRandom())
 
 		sslContext.getSocketFactory
-    
+
   }
 
-  
+
   def getKeyManagerFactory: KeyManagerFactory = {
 
     try {
 
-      if (keystoreFile.isDefined && keystoreType.isDefined && keystorePassword.isDefined && keystoreAlgorithm.isDefined) {
+      if (keystoreFile.isDefined && keystoreType.isDefined && keystorePass.isDefined && keystoreAlgo.isDefined) {
         /*
          * SSL authentication based on an existing key store
          */
         val ksFile = keystoreFile.get
         val ksType = keystoreType.get
 
-        val ksPass = keystorePassword.get
-        val ksAlgo = keystoreAlgorithm.get
+        val ksPass = keystorePass.get
+        val ksAlgo = keystoreAlgo.get
 
         SslUtil.getStoreKeyManagerFactory(ksFile, ksType, ksPass, ksAlgo)
 
       } else if (cert.isDefined && privateKey.isDefined && privateKeyPass.isDefined) {
         /*
          * SSL authentication based on a provided client certificate,
-         * private key and associated password; the certificate will 
+         * private key and associated password; the certificate will
          * be added to a newly created key store
          */
         SslUtil.getCertKeyManagerFactory(cert.get, privateKey.get, privateKeyPass.get)
-        
+
       } else if (certFile.isDefined && privateKeyFile.isDefined && privateKeyFilePass.isDefined) {
         /*
          * SSL authentication based on a provided client certificate file,
-         * private key file and associated password; the certificate will 
+         * private key file and associated password; the certificate will
          * be added to a newly created key store
-         */        
+         */
         SslUtil.getCertFileKeyManagerFactory(certFile.get, privateKeyFile.get, privateKeyFilePass.get)
 
-      } else 
+      } else
         throw new Exception("Failed to retrieve KeyManager factory.")
-      
+
     } catch {
 
       case t: Throwable =>
@@ -283,15 +422,15 @@ class SslOptions(
 
     try {
 
-      if (truststoreFile.isDefined && truststoreType.isDefined && truststorePassword.isDefined && truststoreAlgorithm.isDefined) {
+      if (truststoreFile.isDefined && truststoreType.isDefined && truststorePass.isDefined && truststoreAlgo.isDefined) {
         /*
          * SSL authentication based on an existing trust store
          */
         val tsFile = truststoreFile.get
         val tsType = truststoreType.get
 
-        val tsPass = truststorePassword.get
-        val tsAlgo = truststoreAlgorithm.get
+        val tsPass = truststorePass.get
+        val tsAlgo = truststoreAlgo.get
 
         SslUtil.getStoreTrustManagerFactory(tsFile, tsType, tsPass, tsAlgo)
         
@@ -322,4 +461,5 @@ class SslOptions(
     }
 
   }
+
 }

@@ -1,4 +1,4 @@
-package de.kp.works.beats.opencti
+package de.kp.works.beats.thingsboard
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -24,13 +24,12 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.stream.scaladsl.Source
 import de.kp.works.beats.BeatsRoutes
 
-class CTIRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, NotUsed]) extends BeatsRoutes(source) {
+class ThingsRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, NotUsed]) extends BeatsRoutes(source) {
   /**
-   * The [CTIBeat] is restricted to a Http(s) server
-   * that supports GET requests only. Therefore, no
-   * actors are needed to process incoming requests.
+   * The [ThingsBeat] is restricted to a Http(s) server
+   * that supports GET requests only. Therefore, no actors
+   * are needed to process incoming requests.
    */
   def this(source:Source[ServerSentEvent, NotUsed]) = this(Map.empty[String, ActorRef], source)
-
 
 }
