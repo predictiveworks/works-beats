@@ -22,6 +22,8 @@ import akka.NotUsed
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import com.typesafe.config.Config
+import de.kp.works.beats.ssl.SslOptions
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
@@ -33,4 +35,53 @@ class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
 
   }
 
+  override def onStart(queue: SourceQueueWithComplete[String], thingsCfg:Config):Unit = {
+    /*
+     * After having started the Http(s) server,
+     * the server is started that connects to
+     * ThingsBoard and retrieves notification
+     * that refer to attribute change events
+     */
+    val mqttCfg = thingsCfg.getConfig("mqtt")
+    val brokerUrl = mqttCfg.getString("brokerUrl")
+
+    val mqttCreds = getMqttCreds(mqttCfg)
+
+    val securityCfg = thingsCfg.getConfig("security")
+    val sslOptions = SslOptions.getSslOptions(securityCfg)
+
+    val numThreads = mqttCfg.getInt("numThreads")
+    val receiver = new ThingsReceiver(
+      brokerUrl,
+      mqttCreds,
+      Some(sslOptions),
+      Some(queue),
+      numThreads)
+
+    receiver.start()
+
+  }
+
+  private def getMqttCreds(mqttCfg:Config):MqttCreds = {
+
+    val authToken = {
+      val value = mqttCfg.getString("authToken")
+      if (value.isEmpty) None else Some(value)
+    }
+
+    val clientId = mqttCfg.getString("clientId")
+
+    val userName = {
+      val value = mqttCfg.getString("userName")
+      if (value.isEmpty) None else Some(value)
+    }
+
+    val userPass = {
+      val value = mqttCfg.getString("userPass")
+      if (value.isEmpty) None else Some(value)
+    }
+
+    MqttCreds(clientId, authToken, userName, userPass)
+
+  }
 }

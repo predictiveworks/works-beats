@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, DelayOverflowStrategy, OverflowStrategy}
 import akka.stream.scaladsl.{BroadcastHub, Keep, Source, SourceQueueWithComplete}
 import akka.util.Timeout
+import com.typesafe.config.Config
 import de.kp.works.beats.ssl.SslOptions
 
 import scala.concurrent.duration.DurationInt
@@ -111,7 +112,13 @@ abstract class BeatsService(name:String) {
         Some(Http().bindAndHandle(routes, host, port, connectionContext = context))
       }
 
+    /* After start processing */
+
+    onStart(queue, cfg)
+
   }
+
+  def onStart(queue: SourceQueueWithComplete[String], cfg:Config):Unit
 
   def buildRoute(
     queue:SourceQueueWithComplete[String],

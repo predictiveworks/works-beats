@@ -22,6 +22,7 @@ import akka.NotUsed
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import com.typesafe.config.Config
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
@@ -31,5 +32,9 @@ class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
     val routes = new CTIRoutes(source)
     routes.event
 
+  }
+
+  override def onStart(queue: SourceQueueWithComplete[String], openCtiCfg:Config):Unit = {
+    // TODO
   }
 }

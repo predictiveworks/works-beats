@@ -23,9 +23,11 @@ import akka.actor.Props
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import com.typesafe.config.Config
 import de.kp.works.beats.{BeatsConf, BeatsService}
+
+import scala.concurrent.Await
 
 class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
@@ -50,4 +52,34 @@ class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
   }
 
+  override def onStart(queue: SourceQueueWithComplete[String], fiwareCfg:Config):Unit = {
+
+    val subscriptions = FiwareSubscriptions.getSubscriptions
+    subscriptions.foreach(subscription => {
+
+      try {
+
+        val future = FiwareClient.subscribe(subscription, system)
+        val response = Await.result(future, timeout.duration)
+
+        val sid = FiwareClient.getSubscriptionId(response)
+        FiwareSubscriptions.register(sid, subscription)
+
+      } catch {
+        case t:Throwable =>
+          /*
+           * The current implementation of the Fiware
+           * support is an optimistic approach that
+           * focuses on those subscriptions that were
+           * successfully registered.
+           */
+          println("[ERROR] ------------------------------------------------")
+          println("[ERROR] Registration of subscription failed:")
+          println(s"$subscription")
+          println("[ERROR] ------------------------------------------------")
+      }
+
+    })
+
+  }
 }

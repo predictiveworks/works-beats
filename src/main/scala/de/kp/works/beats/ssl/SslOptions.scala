@@ -173,21 +173,21 @@ object SslOptions {
    * client and service side HTTPS context
    */
   def buildClientConnectionContext(cfg:Config): HttpsConnectionContext = {
-    ConnectionContext.https(sslContext = buildSSLContext(cfg))
+    ConnectionContext.https(sslContext = buildSslContext(cfg))
   }
 
   def buildServerConnectionContext(cfg:Config): HttpsConnectionContext = {
-    ConnectionContext.https(sslContext = buildSSLContext(cfg))
+    ConnectionContext.https(sslContext = buildSslContext(cfg))
   }
 
-  private def buildSSLContext(securityCfg:Config):SSLContext = {
+  private def buildSslContext(securityCfg:Config):SSLContext = {
 
     val sslOptions = getSslOptions(securityCfg)
     sslOptions.getSslContext
 
   }
 
-  private def getSslOptions(securityCfg:Config): SslOptions = {
+  def getSslOptions(securityCfg:Config): SslOptions = {
 
     val ksFile = {
       val v = securityCfg.getString("ksFile")
