@@ -18,8 +18,18 @@ package de.kp.works.beats.opencti
  *
  */
 
+import akka.NotUsed
+import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
 
+  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    val routes = new CTIRoutes(source)
+    routes.event
+
+  }
 }

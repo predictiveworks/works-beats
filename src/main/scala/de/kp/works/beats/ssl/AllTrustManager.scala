@@ -1,6 +1,6 @@
-package de.kp.works.beats.fiware
+package de.kp.works.beats.ssl
 /*
- * Copyright (c) 20129 - 2021 Dr. Krusche & Partner PartG. All rights reserved.
+ * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,11 +18,17 @@ package de.kp.works.beats.fiware
  *
  */
 
-trait FiwareNotificationCallback {
+import java.security.cert.X509Certificate
+import javax.net.ssl.X509TrustManager
 
-  def connectionLost():Unit
+class AllTrustManager extends X509TrustManager {
 
-  def notificationArrived(notification:FiwareNotification):Unit
+  override def getAcceptedIssuers = Array.empty[X509Certificate]
+
+  override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = {
+  }
+
+  override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = {
+  }
 
 }
-

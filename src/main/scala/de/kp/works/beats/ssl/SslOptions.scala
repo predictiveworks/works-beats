@@ -373,7 +373,6 @@ class SslOptions(
 
   }
 
-
   def getKeyManagerFactory: KeyManagerFactory = {
 
     try {

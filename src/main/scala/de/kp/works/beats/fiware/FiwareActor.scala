@@ -22,6 +22,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy}
 import akka.actor.SupervisorStrategy._
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.SourceQueueWithComplete
 import akka.util.{ByteString, Timeout}
 import com.google.gson._
 import com.typesafe.config.Config
@@ -137,7 +138,7 @@ abstract class BaseActor extends Actor with ActorLogging {
  * and, if this is the case, further processing is delegated to
  * the Ignite (Fiware) Streamer
  */
-class FiwareActor(callback:FiwareNotificationCallback) extends BaseActor {
+class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
   import FiwareActor._
 
@@ -187,13 +188,20 @@ class FiwareActor(callback:FiwareNotificationCallback) extends BaseActor {
        }
      */
     val sid = json.get("subscriptionId").getAsString
-    if (FiwareSubscriptions.isRegistered(sid))
-      callback.notificationArrived(notification)
+    if (FiwareSubscriptions.isRegistered(sid)) {
+      /*
+       * Send JSON representation of the Fiware
+       * notification to the provided SSE queue
+       */
+      queue.offer(notification.toJson.toString)
+    }
 
   }
 }
 
 object FiwareActor {
+
+  val ACTOR_NAME = "FiwareActor"
 
   case class Response(status: Try[_])
 

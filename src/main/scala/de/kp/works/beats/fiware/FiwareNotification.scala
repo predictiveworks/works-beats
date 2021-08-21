@@ -23,4 +23,17 @@ import com.google.gson.JsonObject
 case class FiwareNotification(
   service:String,
   servicePath:String,
-  payload:JsonObject)
+  payload:JsonObject) {
+
+  def toJson:JsonObject = {
+
+    val json = new JsonObject
+
+    json.addProperty("service",     service)
+    json.addProperty("servicePath", servicePath)
+
+    json.add("payload", payload)
+    json
+
+  }
+}

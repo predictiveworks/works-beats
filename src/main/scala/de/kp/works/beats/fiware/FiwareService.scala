@@ -18,8 +18,36 @@ package de.kp.works.beats.fiware
  *
  */
 
+import akka.NotUsed
+import akka.actor.Props
+import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
+
+  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    lazy val fiwareActor = system
+      .actorOf(Props(new FiwareActor(queue)), FiwareActor.ACTOR_NAME)
+
+    val actors = Map(FiwareActor.ACTOR_NAME -> fiwareActor)
+    val routes = new FiwareRoutes(actors, source)
+    /*
+     * The [FiwareService] offers 2 different routes, one to
+     * GET Context Broker notifications as SSE (event), and
+     * another POST as endpoint to receive these notifications
+     * from the Context Broker
+     *
+     * Context Broker --> POST [notifications] & SSE --> GET [notification]
+     *
+     */
+    routes.event ~
+    routes.notifications
+
+  }
 
 }
