@@ -20,6 +20,7 @@
 
     <bouncycastle.version>1.68</bouncycastle.version>
     <okhttp.version>3.14.4</okhttp.version>
+    <paho.version>1.2.2</paho.version>
     <scopt.version>4.0.0</scopt.version>
     <!--
     The Scala version that has been used for testing
@@ -80,6 +81,14 @@
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-sse</artifactId>
       <version>${okhttp.version}</version>
+    </dependency>
+
+    <!-- ECLIPSE PAHO
+    -->
+    <dependency>
+      <groupId>org.eclipse.paho</groupId>
+      <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+      <version>${paho.version}</version>
     </dependency>
 
     <!-- SCOPT
