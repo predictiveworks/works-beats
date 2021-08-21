@@ -67,8 +67,8 @@ object FiwareClient {
 
   private val fiwareCfg = BeatsConf.getBeatCfg(BeatsConf.FIWARE_CONF)
 
-  private val brokerCfg = fiwareCfg.getConfig("broker")
-  private val securityCfg = brokerCfg.getConfig("security")
+  private val receiverCfg = fiwareCfg.getConfig("receiver")
+  private val securityCfg = receiverCfg.getConfig("security")
   /**
    * This method creates a single Akka based Http(s) request
    * to send the provided subscription to the Context Broker.
@@ -85,7 +85,7 @@ object FiwareClient {
        * Build request: A subscription is registered with a POST request
        * to /v2/subscriptions
        */
-      val brokerUrl = brokerCfg.getString("brokerUrl")
+      val brokerUrl = receiverCfg.getString("brokerUrl")
       val endpoint = s"$brokerUrl/v2/subscriptions"
 
       val headers = List(`Content-Type`(`text/plain(UTF-8)`))

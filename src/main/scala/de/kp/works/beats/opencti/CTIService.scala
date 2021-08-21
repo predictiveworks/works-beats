@@ -23,6 +23,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.ssl.SslOptions
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
@@ -35,6 +36,40 @@ class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
   }
 
   override def onStart(queue: SourceQueueWithComplete[String], openCtiCfg:Config):Unit = {
-    // TODO
+    /*
+     * After having started the Http(s) server,
+     * the server is started that connects to
+     * OpenCTI server and retrieves SSE
+     *
+     * OpenCTI streams (server) --> CTIReceiver
+     *
+     * The receiver is an SSE client that listens
+     * to published threat intelligence events.
+     */
+    val receiverCfg = openCtiCfg.getConfig("receiver")
+    val endpoint = receiverCfg.getString("endpoint")
+
+    val authToken = {
+      val value = receiverCfg.getString("authToken")
+      if (value.isEmpty) None else Some(value)
+    }
+    /*
+     * Transport security configuration used to
+     * establish a Http(s) connection to the server.
+     */
+    val securityCfg = receiverCfg.getConfig("security")
+    val sslOptions = SslOptions.getSslOptions(securityCfg)
+
+    val numThreads = receiverCfg.getInt("numThreads")
+    val receiver = new CTIReceiver(
+      endpoint,
+      authToken,
+      Some(sslOptions),
+      Some(queue),
+      numThreads
+    )
+
+    receiver.start()
+
   }
 }

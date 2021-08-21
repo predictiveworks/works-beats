@@ -47,7 +47,7 @@ class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
 
     val mqttCreds = getMqttCreds(mqttCfg)
 
-    val securityCfg = thingsCfg.getConfig("security")
+    val securityCfg = mqttCfg.getConfig("security")
     val sslOptions = SslOptions.getSslOptions(securityCfg)
 
     val numThreads = mqttCfg.getInt("numThreads")
