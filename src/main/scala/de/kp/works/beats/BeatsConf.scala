@@ -31,9 +31,13 @@ object BeatsConf {
   private var cfg: Option[Config] = None
 
   val FIWARE_CONF  = "fiware"
+  val FIWARE_NAME  = "Fiware"
+
   val OPENCTI_CONF = "opencti"
+  val OPENCTI_NAME = "OpenCTI"
 
   val THINGSBOARD_CONF = "thingsboard"
+  val THINGSBOARD_NAME = "ThingsBoard"
 
   def init(config: Option[String] = None): Boolean = {
 

@@ -26,19 +26,23 @@ class CTIHandler(
      */
     queue:Option[SourceQueueWithComplete[String]]) {
 
-    def write(eventId:String, eventType:String, data:String):Unit = {
+    def write(sseEvent:SseEvent):Unit = {
       /*
        * Guard to filter irrelevant messages
        */
-      if (eventId == null || eventType == null || data == null) return
-      if (eventId.isEmpty || eventType.isEmpty || data.isEmpty) return
+      if (sseEvent.eventId == null || sseEvent.eventType == null || sseEvent.data == null) return
+      if (sseEvent.eventId.isEmpty || sseEvent.eventType.isEmpty || sseEvent.data.isEmpty) return
       /*
        * Transform the received event and republish
        * as serialized [JsonObject]
        */
-      val serialized = CTITransform.transform(eventId, eventType, data)
-      if (queue.isDefined)
-        queue.get.offer(serialized)
+      val serialized = CTITransform.transform(sseEvent)
+      /*
+       * In case of event types that that are not
+       * republished, [CTITransform] return null
+       */
+      if (queue.isDefined && serialized.isDefined)
+        queue.get.offer(serialized.get)
 
       else {
         /*

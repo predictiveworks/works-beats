@@ -6,8 +6,21 @@ import de.kp.works.beats.ssl.SslOptions
 import java.util.concurrent.Executors
 
 /**
- * The [CTIReceiver] leverages an SSE client to
- * listen to the OpenCTI event stream.
+ * OpenCTI is currently using REDIS Stream as its technical layer.
+ * Each time data is modified in the OpenCTI database, a specific
+ * event is added in the stream.
+ *
+ * In order to provides a really easy consuming protocol OpenCTI
+ * provides an SSE endpoint.
+ *
+ * Every user with respective access rights can open and access
+ *
+ * http(s)://[host]:[port]/stream]
+ *
+ * and open an SSE connection to start receiving live events.
+ *
+ * The [CTIReceiver] leverages an SSE client to connect to the
+ * exposed SSE endpoint and listens to the OpenCTI event stream.
  */
 class CTIReceiver(
    /*

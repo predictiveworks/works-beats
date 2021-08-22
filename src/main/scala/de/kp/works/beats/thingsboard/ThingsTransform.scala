@@ -18,11 +18,31 @@ package de.kp.works.beats.thingsboard
  *
  */
 
-object ThingsTransform {
 
+import com.google.gson.{JsonObject, JsonParser}
+import de.kp.works.beats.BeatsTransform
+
+object ThingsTransform extends BeatsTransform {
+  /*
+   * Subscribing to topic v1/gateway/attributes results in messages of the format:
+   *
+   * Message: {"device": "Device A", "data": {"attribute1": "value1", "attribute2": 42}}
+   */
   def transform(event:MqttEvent):String = {
-    // TODO
-    null
+
+    try {
+
+      val message = mapper.readValue(event.json, classOf[Map[String, Any]])
+      val device = message("device").asInstanceOf[String]
+
+      val data = message("data").asInstanceOf[Map[String, Any]]
+      // TODO
+
+      null
+
+    } catch {
+      case t:Throwable => mapper.writeValueAsString(event)
+    }
   }
 
 }

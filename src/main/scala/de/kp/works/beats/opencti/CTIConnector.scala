@@ -52,9 +52,23 @@ class CTIConnector(
       override def onOpen(eventSource:EventSource, response:Response):Unit = {
         /* Do nothing */
       }
-
-      override def onEvent(eventSource:EventSource, id:String, `type`:String, data:String):Unit = {
-        handler.write(id, `type`, data)
+      /*
+       * Events format
+       *
+       * The events published by OpenCTI are based on the STIX format:
+       *
+       * id: {Event stream id} -> Like 1620249512318-0
+       * event: {Event type} -> create / update / delete
+       * data: { -> The complete event data
+       *    markings: [] -> Array of markings IDS of the element
+       *    origin: {Data Origin} -> Complex object with different information about the origin of the event
+       *    data: {STIX data} -> The STIX representation of the data.
+       *    message -> A simple string to easy understand the event
+       *    version -> The version number of the event
+       * }
+       */
+      override def onEvent(eventSource:EventSource, eventId:String, eventType:String, data:String):Unit = {
+        handler.write(SseEvent(eventId, eventType, data))
       }
 
       override def onClosed(eventSource:EventSource) {
