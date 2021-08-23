@@ -31,8 +31,6 @@ import scopt.OptionParser
  */
 object FiwareBeats {
 
-  // TODO Subscription registration
-
   private case class CliConfig(
     /*
      * The command line interface supports the provisioning

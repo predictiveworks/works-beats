@@ -19,8 +19,9 @@ package de.kp.works.beats.opencti.transform
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.BeatsTransform
 
-object DeleteTransform extends BaseTransform {
+object DeleteTransform extends BeatsTransform {
   def transform(payload:Map[String,Any]):Option[String] = {
 
     val entityId = payload.getOrElse("id", "").asInstanceOf[String]

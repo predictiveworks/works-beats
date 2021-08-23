@@ -1,9 +1,4 @@
 package de.kp.works.beats.opencti.transform
-
-import com.google.gson.JsonObject
-
-import scala.collection.mutable
-
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -22,9 +17,11 @@ import scala.collection.mutable
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-case class CtiAttr(attrName:String, attrType:String, attrValu:String)
 
-object CreateTransform extends BaseTransform {
+import com.google.gson.JsonObject
+import de.kp.works.beats.BeatsTransform
+
+object CreateTransform extends BeatsTransform {
   /*
    * SAMPLE CREATE EVENT
    *

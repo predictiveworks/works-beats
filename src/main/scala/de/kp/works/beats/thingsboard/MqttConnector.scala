@@ -23,7 +23,6 @@ import org.eclipse.paho.client.mqttv3
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import java.nio.charset.Charset
-import java.security.MessageDigest
 
 /**
  * MQTT v3.1 & MQTT v3.1.1
@@ -73,7 +72,6 @@ class MqttConnector(
   def start(): Unit = {
 
     val UTF8 = Charset.forName("UTF-8")
-    val MD5 = MessageDigest.getInstance("MD5")
 
     /* 						MESSAGE PERSISTENCE
      *
@@ -123,18 +121,7 @@ class MqttConnector(
           /* Serialize plain byte message */
           val json = new String(payload, UTF8)
 
-          /* Extract metadata from topic and
-           * serialized payload
-           */
-          val serialized = Seq(topic, json).mkString("|")
-          val digest = MD5.digest(serialized.getBytes).toString
-
-          val tokens = topic.split("\\/").toList
-
-          val context = MD5.digest(tokens.init.mkString("/").getBytes).toString
-          val dimension = tokens.last
-
-          val result = new MqttEvent(timestamp, seconds, topic, qos, duplicate, retained, payload, digest, json, context, dimension)
+          val result = new MqttEvent(timestamp, seconds, topic, qos, duplicate, retained, json)
           handler.write(result)
 
         }

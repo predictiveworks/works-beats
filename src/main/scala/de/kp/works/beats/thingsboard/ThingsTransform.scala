@@ -18,8 +18,7 @@ package de.kp.works.beats.thingsboard
  *
  */
 
-
-import com.google.gson.{JsonObject, JsonParser}
+import com.google.gson.JsonObject
 import de.kp.works.beats.BeatsTransform
 
 object ThingsTransform extends BeatsTransform {
@@ -28,7 +27,7 @@ object ThingsTransform extends BeatsTransform {
    *
    * Message: {"device": "Device A", "data": {"attribute1": "value1", "attribute2": 42}}
    */
-  def transform(event:MqttEvent):String = {
+  def transform(event:MqttEvent):Option[String] = {
 
     try {
 
@@ -36,12 +35,20 @@ object ThingsTransform extends BeatsTransform {
       val device = message("device").asInstanceOf[String]
 
       val data = message("data").asInstanceOf[Map[String, Any]]
-      // TODO
 
-      null
+      val entityJson = new JsonObject
+      entityJson.addProperty("id", device)
+      /*
+       * The message received from ThingsBoard does not
+       * define the `type` of the respective device.
+       */
+      entityJson.addProperty("type", "device")
+
+      fillEntity(data, data.keySet, entityJson)
+      Some(entityJson.toString)null
 
     } catch {
-      case t:Throwable => mapper.writeValueAsString(event)
+      case t:Throwable => Some(mapper.writeValueAsString(event))
     }
   }
 

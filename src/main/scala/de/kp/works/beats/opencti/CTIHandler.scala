@@ -39,7 +39,7 @@ class CTIHandler(
       val serialized = CTITransform.transform(sseEvent)
       /*
        * In case of event types that that are not
-       * republished, [CTITransform] return null
+       * republished, [CTITransform] returns None
        */
       if (queue.isDefined && serialized.isDefined)
         queue.get.offer(serialized.get)

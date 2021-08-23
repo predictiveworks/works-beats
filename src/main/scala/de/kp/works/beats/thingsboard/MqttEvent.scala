@@ -41,26 +41,10 @@ class MqttEvent (
    * retained by the server.
    */
   val retained: Boolean,
-  /* The payload of this message
-   */
-  val payload: Array[Byte],
-  /* The MD5 digest of topic and payload
-   * to identify duplicate messages
-   */
-  val digest: String,
   /* The [String] representation of the
    * payload
    */
-  val json: String,
-  /* The context of the message, i.e. all
-   * topic levels except the last one as
-   * MD5 digest
-   */
-  val context: String,
-  /* The lowest topic level, which describes
-   * semantic meaning of message
-   */
-  val dimension: String) extends Serializable {
+  val json: String) extends Serializable {
 
   def copy():MqttEvent = {
 
@@ -71,11 +55,7 @@ class MqttEvent (
       qos,
       duplicate,
       retained,
-      payload,
-      digest,
-      json,
-      context,
-      dimension)
+      json)
 
   }
 }

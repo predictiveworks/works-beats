@@ -32,8 +32,8 @@ class ThingsHandler(
      * as serialized [JsonObject]
      */
     val serialized = ThingsTransform.transform(event)
-    if (queue.isDefined)
-      queue.get.offer(serialized)
+    if (queue.isDefined && serialized.isDefined)
+      queue.get.offer(serialized.get)
 
     else {
       /*

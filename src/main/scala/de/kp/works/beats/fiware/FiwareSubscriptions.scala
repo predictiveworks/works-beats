@@ -18,6 +18,11 @@ package de.kp.works.beats.fiware
  *
  */
 
+import com.google.gson.{JsonArray, JsonObject}
+import com.typesafe.config.{Config, ConfigObject}
+import de.kp.works.beats.BeatsConf
+
+import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.mutable
 
 object FiwareSubscriptions {
@@ -91,7 +96,29 @@ object FiwareSubscriptions {
   private val registry:mutable.HashMap[String, String] = mutable.HashMap.empty[String,String]
 
   def getSubscriptions:Seq[String] = {
-    Seq.empty[String]
+
+    val subscriptions = mutable.ArrayBuffer.empty[String]
+
+    val fiwareCfg = BeatsConf.getBeatCfg(BeatsConf.FIWARE_CONF)
+    val list = fiwareCfg.getList("subscriptions")
+
+    val size = list.size
+    for (i <- 0 until size) {
+
+      val cval = list.get(i)
+      cval match {
+        case configObject: ConfigObject =>
+          val item = configObject.toConfig
+          subscriptions += toSubscription(item)
+
+        case _ =>
+          throw new Exception(s"Subscription $i is not specified as configuration object.")
+      }
+
+    }
+
+    subscriptions
+
   }
 
   def register(sid:String, subscription:String):Unit = {
@@ -101,4 +128,92 @@ object FiwareSubscriptions {
   def isRegistered(sid:String):Boolean = {
     registry.contains(sid)
   }
+
+  private def toSubscription(cSubscription:Config):String = {
+
+    val jSubscription = new JsonObject()
+
+    /* 'description' */
+
+    jSubscription.addProperty("description", cSubscription.getString("description"))
+
+    /* subject */
+
+    val cSubject = cSubscription.getConfig("subject")
+    val jSubject = new JsonObject()
+
+    /* subject :: entities */
+
+    val cEntities = cSubject.getConfigList("entities")
+    val jEntities = new JsonArray()
+
+    cEntities.foreach(cEntity => {
+
+      val jEntity = new JsonObject()
+
+      /* entity :: id */
+
+      val eid = cEntity.getString("id")
+      jEntity.addProperty("id", eid)
+
+      /* entity :: type */
+
+      val etype = cEntity.getString("type")
+      jEntity.addProperty("type", etype)
+
+      jEntities.add(jEntity)
+
+    })
+
+    jSubject.add("entities", jEntities)
+
+
+    /* subject :: condition */
+
+    val cCondition = cSubject.getConfig("condition")
+    val jCondition = new JsonObject()
+
+    val cConditionAttrs = cCondition.getStringList("attrs")
+    val jConditionAttrs = new JsonArray()
+
+    cConditionAttrs.foreach(attr => jConditionAttrs.add(attr))
+    jCondition.add("attrs", jConditionAttrs)
+
+    jSubject.add("condition", jCondition)
+    jSubscription.add("subject", jSubject)
+
+    /* notification */
+
+    val cNotification = cSubscription.getConfig("notification")
+    val jNotification = new JsonObject()
+
+    /* notification :: http */
+
+    val cHttp = cNotification.getConfig("http")
+    val jHttp = new JsonObject()
+
+    jHttp.addProperty("url", cHttp.getString("url"))
+    jNotification.add("http", jHttp)
+
+    /* notification :: attrs */
+
+    val cNotificationAttrs = cNotification.getStringList("attrs")
+    val jNotificationAttrs = new JsonArray()
+
+    cNotificationAttrs.foreach(attr => jNotificationAttrs.add(attr))
+    jNotification.add("attrs", jNotificationAttrs)
+
+    jSubscription.add("notification", jNotification)
+
+    /* expires */
+
+    jSubscription.addProperty("expires", cSubscription.getString("expires"))
+
+    /* throttling */
+
+    jSubscription.addProperty("throttling", cSubscription.getInt("throttling"))
+    jSubscription.toString
+
+  }
+
 }

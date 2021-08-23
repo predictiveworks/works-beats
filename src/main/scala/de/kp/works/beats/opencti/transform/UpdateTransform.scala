@@ -19,8 +19,9 @@ package de.kp.works.beats.opencti.transform
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.BeatsTransform
 
-object UpdateTransform extends BaseTransform {
+object UpdateTransform extends BeatsTransform {
   /*
    * SAMPLE UPDATE EVENT
    *
