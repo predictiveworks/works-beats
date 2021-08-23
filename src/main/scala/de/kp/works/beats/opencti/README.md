@@ -17,4 +17,4 @@ OpenCTI ships with a variety of connectors to widely known threat intelligence d
 like AlienVault, CrowdStrike, FireEye and MISP, MITRE ATT&CK and more.
 
 **OpenCTI Beat** perfectly works with **Works Stream**, an Apache Spark Streaming based library, 
-and open threat intelligence events to be used in the Apache Spark ecosystem. 
+and open threat intelligence events can be used in the Apache Spark ecosystem. 
