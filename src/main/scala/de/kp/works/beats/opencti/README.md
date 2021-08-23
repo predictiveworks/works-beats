@@ -1,6 +1,5 @@
-#
+
 # OpenCTI Beat
-#
 
 <p align="center">
   <img src="https://github.com/predictiveworks/works-beats/blob/main/images/opencti-beat-2021-08-22.png" width="600" alt="OpenCTI Beat">
