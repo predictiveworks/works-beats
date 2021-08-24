@@ -131,7 +131,6 @@ object CTITransform extends BeatsTransform {
       }
 
       if (payload.isEmpty) return None
-      val entityType = payload.getOrElse("type", "").asInstanceOf[String]
 
       event match {
         case "create" =>
