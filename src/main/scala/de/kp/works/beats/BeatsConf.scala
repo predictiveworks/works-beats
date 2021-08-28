@@ -33,6 +33,9 @@ object BeatsConf {
   val FIWARE_CONF  = "fiware"
   val FIWARE_NAME  = "Fiware"
 
+  val OPCUA_CONF = "opcua"
+  val OPCUA_NAME = "OpcUA"
+
   val OPENCTI_CONF = "opencti"
   val OPENCTI_NAME = "OpenCTI"
 
@@ -83,8 +86,10 @@ object BeatsConf {
     }
 
     name match {
-      case FIWARE_CONF  => cfg.get.getConfig(FIWARE_CONF)
-      case OPENCTI_CONF => cfg.get.getConfig(OPENCTI_CONF)
+      case FIWARE_CONF      => cfg.get.getConfig(FIWARE_CONF)
+      case OPCUA_CONF       => cfg.get.getConfig(OPCUA_CONF)
+      case OPENCTI_CONF     => cfg.get.getConfig(OPENCTI_CONF)
+      case THINGSBOARD_CONF => cfg.get.getConfig(THINGSBOARD_CONF)
       case _ =>
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")
     }
