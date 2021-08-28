@@ -18,7 +18,7 @@ package de.kp.works.beats.opencti
  *
  */
 
-import scopt.OptionParser
+import de.kp.works.beats.BaseBeat
 
 /**
  * The [CTIBeat] is Akka based Http(s) service that manages
@@ -28,77 +28,16 @@ import scopt.OptionParser
  * An SSE client like [Works. Stream] listens to the published
  * events and initiates subsequent data processing.
  */
-object CTIBeat {
+object CTIBeat extends BaseBeat {
 
-  private case class CliConfig(
-    /*
-     * The command line interface supports the provisioning
-     * of a typesafe config compliant configuration file
-     */
-    conf:String = null
-  )
+  override var programName:String = "CTIBeat"
+  override var programDesc:String = "Publish threat events as SSE."
 
-  def main(args:Array[String]):Unit = {
+  override def launch(args:Array[String]):Unit = {
 
-    /* Command line argument parser */
-    val parser = new OptionParser[CliConfig]("CTIBeat") {
+    val service = new CTIService()
+    start(args, service)
 
-      head("OpenCTI Beat: Publish threat events as SSE.")
-
-      opt[String]("c")
-        .text("The path to the configuration file.")
-        .action((x, c) => c.copy(conf = x))
-
-    }
-
-    /* Parse the argument and then run */
-    parser.parse(args, CliConfig()).map{c =>
-
-      try {
-
-        val service = new CTIService()
-
-        if (c.conf == null) {
-
-          println("[INFO] ------------------------------------------------")
-          println("[INFO] Launch OpenCTI Beat with internal configuration.")
-          println("[INFO] ------------------------------------------------")
-
-          service.start()
-
-        } else {
-
-          println("[INFO] ------------------------------------------------")
-          println("[INFO] Launch OpenCTI Beat with external configuration.")
-          println("[INFO] ------------------------------------------------")
-
-          val source = scala.io.Source.fromFile(c.conf)
-          val config = source.getLines.mkString("\n")
-
-          source.close
-          service.start(Option(config))
-
-        }
-
-        println("[INFO] ------------------------------------------------")
-        println("[INFO] OpenCTI Beat service started.")
-        println("[INFO] ------------------------------------------------")
-
-      } catch {
-        case t:Throwable =>
-          t.printStackTrace()
-          println("[ERROR] ------------------------------------------------")
-          println("[ERROR] OpenCTI Beat cannot be started: " + t.getMessage)
-          println("[ERROR] ------------------------------------------------")
-      }
-    }.getOrElse {
-      /*
-       * Sleep for 10 seconds so that one may see error messages
-       * in Yarn clusters where logs are not stored.
-       */
-      Thread.sleep(10000)
-      sys.exit(1)
-    }
   }
 
 }

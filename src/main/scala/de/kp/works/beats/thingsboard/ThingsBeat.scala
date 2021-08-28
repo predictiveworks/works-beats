@@ -18,7 +18,7 @@ package de.kp.works.beats.thingsboard
  *
  */
 
-import scopt.OptionParser
+import de.kp.works.beats.BaseBeat
 
 /**
  * The [ThingsBeat] is Akka based Http(s) service that manages
@@ -29,77 +29,16 @@ import scopt.OptionParser
  * events and initiates subsequent data processing.
  */
 
-object ThingsBeat {
+object ThingsBeat extends BaseBeat {
 
-  private case class CliConfig(
-    /*
-     * The command line interface supports the provisioning
-     * of a typesafe config compliant configuration file
-     */
-    conf:String = null
-  )
+  override var programName:String = "ThingsBeat"
+  override var programDesc:String = "Publish things events as SSE."
 
-  def main(args:Array[String]):Unit = {
+  override def launch(args:Array[String]):Unit = {
 
-    /* Command line argument parser */
-    val parser = new OptionParser[CliConfig]("ThingsBeat") {
+    val service = new ThingsService()
+    start(args, service)
 
-      head("ThingsBoard Beat: Publish things events as SSE.")
-
-      opt[String]("c")
-        .text("The path to the configuration file.")
-        .action((x, c) => c.copy(conf = x))
-
-    }
-
-    /* Parse the argument and then run */
-    parser.parse(args, CliConfig()).map{c =>
-
-      try {
-
-        val service = new ThingsService()
-
-        if (c.conf == null) {
-
-          println("[INFO] ----------------------------------------------------")
-          println("[INFO] Launch ThingsBoard Beat with internal configuration.")
-          println("[INFO] ----------------------------------------------------")
-
-          service.start()
-
-        } else {
-
-          println("[INFO] ----------------------------------------------------")
-          println("[INFO] Launch ThingsBoard Beat with external configuration.")
-          println("[INFO] ----------------------------------------------------")
-
-          val source = scala.io.Source.fromFile(c.conf)
-          val config = source.getLines.mkString("\n")
-
-          source.close
-          service.start(Option(config))
-
-        }
-
-        println("[INFO] ------------------------------------------------")
-        println("[INFO] ThingsBoard Beat service started.")
-        println("[INFO] ------------------------------------------------")
-
-      } catch {
-        case t:Throwable =>
-          t.printStackTrace()
-          println("[ERROR] ---------------------------------------------------")
-          println("[ERROR] ThingsBoard Beat cannot be started: " + t.getMessage)
-          println("[ERROR] ---------------------------------------------------")
-      }
-    }.getOrElse {
-      /*
-       * Sleep for 10 seconds so that one may see error messages
-       * in Yarn clusters where logs are not stored.
-       */
-      Thread.sleep(10000)
-      sys.exit(1)
-    }
   }
 
 }
