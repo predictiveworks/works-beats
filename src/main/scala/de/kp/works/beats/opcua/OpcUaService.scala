@@ -1,4 +1,4 @@
-package de.kp.works.beats.opencti
+package de.kp.works.beats.opcua
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -19,17 +19,23 @@ package de.kp.works.beats.opencti
  */
 
 import akka.NotUsed
-import akka.actor.ActorRef
 import akka.http.scaladsl.model.sse.ServerSentEvent
-import akka.stream.scaladsl.Source
-import de.kp.works.beats.BeatsRoutes
+import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import com.typesafe.config.Config
+import de.kp.works.beats.{BeatsConf, BeatsService}
 
-class CTIRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, NotUsed]) extends BeatsRoutes(source) {
-  /**
-   * The [CTIBeat] is restricted to a Http(s) server
-   * that supports GET requests only. Therefore, no
-   * actors are needed to process incoming requests.
-   */
-  def this(source:Source[ServerSentEvent, NotUsed]) = this(Map.empty[String, ActorRef], source)
+class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
+
+  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    val routes = new OpcUaRoutes(source)
+    routes.event
+
+  }
+
+  override def onStart(queue: SourceQueueWithComplete[String], opcUaCfg:Config):Unit = {
+    throw new Exception("not implemented yet")
+  }
 
 }

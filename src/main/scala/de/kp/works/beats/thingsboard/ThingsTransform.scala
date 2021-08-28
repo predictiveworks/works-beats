@@ -45,7 +45,7 @@ object ThingsTransform extends BeatsTransform {
       entityJson.addProperty("type", "device")
 
       fillEntity(data, data.keySet, entityJson)
-      Some(entityJson.toString)null
+      Some(entityJson.toString)
 
     } catch {
       case t:Throwable => Some(mapper.writeValueAsString(event))
