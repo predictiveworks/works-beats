@@ -35,7 +35,13 @@ class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
   }
 
   override def onStart(queue: SourceQueueWithComplete[String], opcUaCfg:Config):Unit = {
-    throw new Exception("not implemented yet")
+
+    val receiverCfg = opcUaCfg.getConfig("receiver")
+    val numThreads = receiverCfg.getInt("numThreads")
+
+    val receiver = new OpcUaReceiver(Some(queue), numThreads)
+    receiver.start()
+
   }
 
 }

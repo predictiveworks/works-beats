@@ -69,7 +69,7 @@ object OpcUaRegistry {
     topicMonitoredItems.remove(topic.topicName)
   }
 
-  def getTopics: java.util.List[OpcUaTopic] = {
+  def getTopics: List[OpcUaTopic] = {
     topics.toList
   }
 
