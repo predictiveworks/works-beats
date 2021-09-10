@@ -42,6 +42,9 @@ object BeatsConf {
   val THINGSBOARD_CONF = "thingsboard"
   val THINGSBOARD_NAME = "ThingsBoard"
 
+  val OSQUERY_CONF = "osquery"
+  val OSQUERY_NAME = "Osquery"
+
   def init(config: Option[String] = None): Boolean = {
 
     if (cfg.isDefined) true
@@ -89,6 +92,7 @@ object BeatsConf {
       case FIWARE_CONF      => cfg.get.getConfig(FIWARE_CONF)
       case OPCUA_CONF       => cfg.get.getConfig(OPCUA_CONF)
       case OPENCTI_CONF     => cfg.get.getConfig(OPENCTI_CONF)
+      case OSQUERY_CONF     => cfg.get.getConfig(OSQUERY_CONF)
       case THINGSBOARD_CONF => cfg.get.getConfig(THINGSBOARD_CONF)
       case _ =>
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")

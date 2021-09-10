@@ -41,7 +41,7 @@ abstract class BaseActor extends Actor with ActorLogging {
   val SERVICE_PATH_HEADER = 5
   /**
    * The actor system is implicitly accompanied by a materializer,
-   * and this materializer is required to retrieve the bytestring
+   * and this materializer is required to retrieve the ByteString
    */
   implicit val system: ActorSystem = context.system
   implicit val ec: ExecutionContextExecutor = system.dispatcher
