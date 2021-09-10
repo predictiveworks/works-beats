@@ -33,7 +33,9 @@ class OsqueryService extends BeatsService(BeatsConf.OSQUERY_CONF) {
 
   import OsqueryRoutes._
 
-  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = ???
+  override def onStart(queue: SourceQueueWithComplete[String], opcUaCfg:Config):Unit = {
+    throw new Exception("not implemented yet")
+  }
 
   override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
 
