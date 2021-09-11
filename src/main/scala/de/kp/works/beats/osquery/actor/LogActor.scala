@@ -126,8 +126,4 @@ class LogActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
   }
 
-  override def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String = {
-    throw new Exception("Not implemented.")
-  }
-
 }

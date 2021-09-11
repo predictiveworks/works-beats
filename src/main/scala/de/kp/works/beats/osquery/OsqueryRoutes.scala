@@ -103,7 +103,7 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
 
   /**
    *  Enroll an endpoint with osquery. Request processing starts
-   *  from a low-level HTTP request.
+   *  from a low-level HTTP(s) request.
    *
    *  Returns a `node_key` unique id. Additionally `node_invalid`
    *  will be true if the node failed to enroll.
@@ -180,8 +180,12 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
 
   private def extractRead = extract(readActor)
 
-  /** WRITE **/
-
+  /** WRITE
+   *
+   * This route receives the results of distributed queries
+   * initiated by a distributed READ request. The results are
+   * formatted and enriched and serialized for publishing.
+   */
   def write:Route = {
     path("distributed" / "write") {
       post {
@@ -206,6 +210,11 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
   private def extract(actor:ActorRef) = {
     extractRequest { request =>
       complete {
+        /*
+         * The Http(s) request is sent to the respective
+         * actor and the actor' response is sent to the
+         * requester (node or agent) as response.
+         */
         val future = actor ? request
         Await.result(future, timeout.duration) match {
           case Response(Failure(e)) =>

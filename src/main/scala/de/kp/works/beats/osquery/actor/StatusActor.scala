@@ -108,10 +108,6 @@ class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
     throw new Exception("Not implemented.")
   }
 
-  override def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String = {
-    throw new Exception("Not implemented.")
-  }
-
 }
 
 object StatusActor {

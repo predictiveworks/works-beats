@@ -19,7 +19,6 @@ package de.kp.works.beats.osquery.actor
  */
 
 import akka.http.scaladsl.model.HttpRequest
-import com.google.gson._
 import de.kp.works.beats.osquery.redis.RedisApi
 
 class EnrollActor extends BaseActor {
@@ -139,16 +138,6 @@ class EnrollActor extends BaseActor {
 
     log.info(s"Node ${node.nodeKey} enrolled.")
     buildResponse(nodeInvalid = false, Option(node.nodeKey))
-
-  }
-
-  override def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String = {
-
-    val response = new JsonObject()
-    response.addProperty(NODE_INVALID, nodeInvalid)
-
-    if (nodeKey.isDefined) response.addProperty(NODE_KEY, nodeKey.get)
-    response.toString
 
   }
 

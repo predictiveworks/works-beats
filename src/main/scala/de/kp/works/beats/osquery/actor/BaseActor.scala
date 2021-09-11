@@ -29,6 +29,7 @@ import com.google.gson._
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.osquery.OsqueryConstants
+import de.kp.works.beats.osquery.OsqueryConstants.{NODE_INVALID, NODE_KEY}
 import de.kp.works.beats.osquery.redis.{OsqueryNode, RedisApi}
 
 import scala.concurrent.duration._
@@ -120,16 +121,15 @@ abstract class BaseActor extends Actor with ActorLogging {
     buildResponse(nodeInvalid = true)
   }
 
-  def buildResponse(nodeInvalid:Boolean):String = {
+  def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String = {
 
     val response = new JsonObject()
-    response.addProperty(OsqueryConstants.NODE_INVALID, nodeInvalid)
+    response.addProperty(NODE_INVALID, nodeInvalid)
 
+    if (nodeKey.isDefined) response.addProperty(NODE_KEY, nodeKey.get)
     response.toString
 
   }
-
-  def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String
 
   /**
    * In case of `node = null` a `node_invalid`

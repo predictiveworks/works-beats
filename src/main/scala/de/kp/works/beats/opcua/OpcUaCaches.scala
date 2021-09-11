@@ -217,7 +217,7 @@ class OpcUaCaches(client:OpcUaClient) {
   private def jsonArrayToList(jsonArray:JsonArray):List[JsonObject] = {
     val buffer = mutable.ArrayBuffer.empty[JsonObject]
     (0 until jsonArray.size).foreach(i => {
-      buffer += jsonArray.get(i)
+      buffer += jsonArray.get(i).getAsJsonObject
     })
 
     buffer.toList

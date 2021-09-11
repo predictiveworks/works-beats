@@ -38,13 +38,21 @@ class OsqueryService extends BeatsService(BeatsConf.OSQUERY_CONF) {
   }
 
   override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
-
+    /*
+     * NODE MANAGEMENT
+     *
+     * The [OsqueryBeat] can also be used as a gate
+     * to a fleet of machines that are equipped with
+     * Osquery agents.
+     */
     lazy val configActor = system
       .actorOf(Props(new ConfigActor()), CONFIG_ACTOR)
 
     lazy val enrollActor = system
       .actorOf(Props(new EnrollActor()), ENROLL_ACTOR)
-
+    /*
+     * INFORMATION MANAGEMENT
+     */
     lazy val logActor = system
       .actorOf(Props(new LogActor(queue)), LOG_ACTOR)
 

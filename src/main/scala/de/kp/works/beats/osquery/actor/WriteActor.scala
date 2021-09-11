@@ -23,7 +23,9 @@ import com.google.gson._
 import de.kp.works.beats.osquery.redis.RedisApi
 
 import scala.collection.JavaConversions._
-
+/**
+ * The [WriteActor] receives the results of distributed queries
+ */
 class WriteActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
   import de.kp.works.beats.osquery.OsqueryConstants._
@@ -145,7 +147,12 @@ class WriteActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
   }
 
   private def buildFields(node:String, host:String, qid:String, rows:JsonArray):JsonArray = {
-
+    /*
+     * [
+     *   {"column1": "value1", "column2": "value2"},
+     *   {"column1": "value1", "column2": "value2"}
+     * ]
+     */
     val fields = new JsonArray
     rows.foreach(columns => {
 
@@ -170,10 +177,6 @@ class WriteActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
     fields
 
-  }
-
-  override def buildResponse(nodeInvalid:Boolean, nodeKey:Option[String] = None):String = {
-    throw new Exception("Not implemented.")
   }
 
 }

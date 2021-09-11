@@ -330,7 +330,7 @@ class OpcUaConnector() {
 
     val selectEndpoint = new Function[java.util.List[EndpointDescription], Optional[EndpointDescription]] {
       override def apply(endpoints: java.util.List[EndpointDescription]): Optional[EndpointDescription] = {
-        new Optional[EndpointDescription](
+        Optional.of[EndpointDescription](
           endpoints
             .filter(e => endpointFilter(e))
             .map(e => endpointUpdater(e))
