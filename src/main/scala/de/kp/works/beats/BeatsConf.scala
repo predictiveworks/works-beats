@@ -33,6 +33,9 @@ object BeatsConf {
   val FIWARE_CONF  = "fiware"
   val FIWARE_NAME  = "Fiware"
 
+  val FLEET_CONF  = "fleet"
+  val FLEET_NAME  = "fleet"
+
   val OPCUA_CONF = "opcua"
   val OPCUA_NAME = "OpcUA"
 
@@ -44,6 +47,9 @@ object BeatsConf {
 
   val OSQUERY_CONF = "osquery"
   val OSQUERY_NAME = "Osquery"
+
+  val ZEEK_CONF  = "zeek"
+  val ZEEK_NAME  = "zeek"
 
   def init(config: Option[String] = None): Boolean = {
 
@@ -90,10 +96,12 @@ object BeatsConf {
 
     name match {
       case FIWARE_CONF      => cfg.get.getConfig(FIWARE_CONF)
+      case FLEET_CONF       => cfg.get.getConfig(FLEET_CONF)
       case OPCUA_CONF       => cfg.get.getConfig(OPCUA_CONF)
       case OPENCTI_CONF     => cfg.get.getConfig(OPENCTI_CONF)
       case OSQUERY_CONF     => cfg.get.getConfig(OSQUERY_CONF)
       case THINGSBOARD_CONF => cfg.get.getConfig(THINGSBOARD_CONF)
+      case ZEEK_CONF        => cfg.get.getConfig(ZEEK_CONF)
       case _ =>
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")
     }

@@ -1,4 +1,4 @@
-package de.kp.works.beats.opencti
+package de.kp.works.beats.osquery.fleet
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -18,26 +18,17 @@ package de.kp.works.beats.opencti
  *
  */
 
-import de.kp.works.beats.BaseBeat
+import akka.NotUsed
+import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import com.typesafe.config.Config
+import de.kp.works.beats.{BeatsConf, BeatsService}
 
-/**
- * The [CTIBeat] is an Akka based Http(s) service that manages
- * an SSE client based OpenCTI connector. Retrieved events
- * are transformed and published to the SSE output queue.
- *
- * An SSE client like [Works. Stream] listens to the published
- * events and initiates subsequent data processing.
- */
-object CTIBeat extends BaseBeat {
+class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
 
-  override var programName:String = "CTIBeat"
-  override var programDesc:String = "Publish threat events as SSE."
+  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = ???
 
-  override def launch(args:Array[String]):Unit = {
-
-    val service = new CTIService()
-    start(args, service)
-
-  }
+  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = ???
 
 }
