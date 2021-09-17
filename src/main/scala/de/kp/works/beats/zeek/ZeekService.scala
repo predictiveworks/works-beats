@@ -27,7 +27,12 @@ import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
 
-  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = ???
+  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route  = {
+
+    val routes = new ZeekRoutes(source)
+    routes.event
+
+  }
 
   override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = ???
 
