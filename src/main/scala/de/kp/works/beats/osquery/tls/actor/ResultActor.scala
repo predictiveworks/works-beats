@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.actor
+package de.kp.works.beats.osquery.tls.actor
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -20,9 +20,9 @@ package de.kp.works.beats.osquery.actor
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
-import de.kp.works.beats.osquery.OsqueryTransform
-import de.kp.works.beats.osquery.actor.ResultActor._
-import de.kp.works.beats.osquery.redis.OsqueryNode
+import de.kp.works.beats.osquery.tls.OsqueryTransform
+import de.kp.works.beats.osquery.tls.actor.ResultActor._
+import de.kp.works.beats.osquery.tls.redis.OsqueryNode
 
 /*
  * EVENT FORMAT

@@ -1,6 +1,6 @@
-package de.kp.works.beats.osquery
+package de.kp.works.beats.osquery.tls
 /*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+ * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,13 +18,14 @@ package de.kp.works.beats.osquery
  *
  */
 
-import com.google.gson._
-import de.kp.works.beats.osquery.OsqueryConstants._
-import de.kp.works.beats.osquery.redis.OsqueryNode
+import com.google.gson.{JsonArray, JsonObject}
+import de.kp.works.beats.osquery.tls.redis.OsqueryNode
 
 import java.text.SimpleDateFormat
 
 object OsqueryTransform {
+
+  import OsqueryConstants._
   /**
    * This method receives a node and its query result `data`
    * and converts the incoming log data into a series of fields,
@@ -32,8 +33,7 @@ object OsqueryTransform {
    * into batch format, which is used throughout the rest of this
    * service.
    */
-  def transform(node:OsqueryNode, data:JsonArray):JsonArray = {
-
+  def transform(node: OsqueryNode, data: JsonArray): JsonArray = {
     /*
      * Extract node meta information
      */
@@ -85,7 +85,7 @@ object OsqueryTransform {
           events.add(field)
 
         } catch {
-          case _:Throwable => /* Do nothing */
+          case _: Throwable => /* Do nothing */
         }
 
       }
@@ -103,7 +103,7 @@ object OsqueryTransform {
               events.add(field)
 
             } catch {
-              case _:Throwable => /* Do nothing */
+              case _: Throwable => /* Do nothing */
             }
 
           })
@@ -120,7 +120,7 @@ object OsqueryTransform {
               events.add(field)
 
             } catch {
-              case _:Throwable => /* Do nothing */
+              case _: Throwable => /* Do nothing */
             }
 
           })
@@ -137,7 +137,7 @@ object OsqueryTransform {
             events.add(field)
 
           } catch {
-            case _:Throwable => /* Do nothing */
+            case _: Throwable => /* Do nothing */
           }
 
         })
@@ -151,15 +151,16 @@ object OsqueryTransform {
     events
 
   }
+
   /*
-   * This method transforms normalized `event`, `batch` (diffResults)
-   * and `snapshot` logs into a common field format
-   *
-   * @node: node key
-   * @host: host identifier
-   *
-   */
-  private def buildField(node:String, host:String, timestamp:Long, name:String, action:String, columns:JsonObject):JsonObject = {
+         * This method transforms normalized `event`, `batch` (diffResults)
+         * and `snapshot` logs into a common field format
+         *
+         * @node: node key
+         * @host: host identifier
+         *
+         */
+  private def buildField(node: String, host: String, timestamp: Long, name: String, action: String, columns: JsonObject): JsonObject = {
 
     val field = new JsonObject
 
@@ -170,7 +171,7 @@ object OsqueryTransform {
 
     /* Entry information */
 
-    field.addProperty(NAME,   name)
+    field.addProperty(NAME, name)
     field.addProperty(ACTION, action)
 
     field.addProperty(TIMESTAMP, timestamp)
@@ -180,7 +181,7 @@ object OsqueryTransform {
 
   }
 
-  private def transformCalTime(s:String):java.util.Date = {
+  private def transformCalTime(s: String): java.util.Date = {
 
     try {
 
@@ -198,7 +199,7 @@ object OsqueryTransform {
       format.parse(s)
 
     } catch {
-      case _:Throwable => null
+      case _: Throwable => null
     }
 
   }

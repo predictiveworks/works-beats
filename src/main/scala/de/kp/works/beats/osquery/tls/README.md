@@ -1,7 +1,7 @@
 
-# Osquery Beat
+# Osquery TLS Beat
 
-**Osquery Beat** is a standalone Akka-based Http(s) service and provides a TLS endpoint
+**Osquery TLS Beat** is a standalone Akka-based Http(s) service and provides a TLS endpoint
 for Osquery node-based *query results* and *status messages*. Node and status information 
 is consumed and re-published via SSE.
 

@@ -1,6 +1,6 @@
-package de.kp.works.beats.osquery
+package de.kp.works.beats.osquery.tls
 /*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+ * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -20,36 +20,30 @@ package de.kp.works.beats.osquery
 
 import akka.NotUsed
 import akka.actor.ActorRef
-import akka.pattern.ask
-
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.sse.ServerSentEvent
-
-import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-
+import akka.http.scaladsl.server.Route
+import akka.pattern.ask
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import de.kp.works.beats.BeatsRoutes
-import de.kp.works.beats.osquery.actor.BaseActor._
+import de.kp.works.beats.osquery.tls.actor.BaseActor.Response
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 object OsqueryRoutes {
 
-  val CONFIG_ACTOR = "ConfigActor"
-  val ENROLL_ACTOR = "EnrollActor"
-
-  val LOG_ACTOR = "LogActor"
-
-  val READ_ACTOR  = "ReadActor"
-  val WRITE_ACTOR = "WriteActor"
+  val CONFIG_ACTOR = "config_actor"
+  val ENROLL_ACTOR = "enroll_actor"
+  val LOG_ACTOR    = "log_actor"
+  val READ_ACTOR   = "read_actor"
+  val WRITE_ACTOR = "write_actor"
 
 }
-
 /**
  * [OsqueryRoutes] support the state-of-the-art communication
  * with an Osquery agent.
@@ -74,27 +68,26 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
    * Retrieve an osquery configuration for a given node.
    * Request processing starts from a low-level HTTP
    * request.
-   *
+   * <p>
    * Returns an osquery configuration file
-   *
    */
   def config:Route = {
     path("config") {
       post {
         extractConfig
       } ~
-        put {
-          extractConfig
-        }
-    }  ~
-      path("v1" / "config") {
-        post {
-          extractConfig
-        } ~
-        put {
-          extractConfig
-        }
+      put {
+        extractConfig
       }
+    }  ~
+    path("v1" / "config") {
+      post {
+        extractConfig
+      } ~
+      put {
+        extractConfig
+      }
+    }
   }
 
   private def extractConfig = extract(configActor)
@@ -102,30 +95,29 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
   /** ENROLL **/
 
   /**
-   *  Enroll an endpoint with osquery. Request processing starts
-   *  from a low-level HTTP(s) request.
-   *
-   *  Returns a `node_key` unique id. Additionally `node_invalid`
-   *  will be true if the node failed to enroll.
-   *
+   * Enroll an endpoint with osquery. Request processing starts
+   * from a low-level HTTP(s) request.
+   * <p>
+   * Returns a `node_key` unique id. Additionally `node_invalid`
+   * will be true if the node failed to enroll.
    */
   def enroll:Route = {
     path("enroll") {
       post {
         extractEnroll
       } ~
-        put {
-          extractEnroll
-        }
-    }  ~
-      path("v1" / "enroll") {
-        post {
-          extractEnroll
-        } ~
-          put {
-            extractEnroll
-          }
+      put {
+        extractEnroll
       }
+    }  ~
+    path("v1" / "enroll") {
+      post {
+        extractEnroll
+      } ~
+      put {
+        extractEnroll
+      }
+    }
   }
 
   /*
@@ -134,54 +126,59 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
    */
   private def extractEnroll = extract(enrollActor)
 
-  /** LOG **/
+  /**
+   * LOG
+   **/
 
   def log:Route = {
     path("log") {
       post {
         extractLog
       } ~
-        put {
-          extractLog
-        }
-    }  ~
-      path("v1" / "log") {
-        post {
-          extractLog
-        } ~
-          put {
-            extractLog
-          }
+      put {
+        extractLog
       }
+    }  ~
+    path("v1" / "log") {
+      post {
+        extractLog
+      } ~
+      put {
+        extractLog
+      }
+    }
   }
 
   private def extractLog = extract(logActor)
 
-  /** READ **/
+  /**
+   * READ
+   **/
 
   def read:Route = {
     path("distributed" / "read") {
       post {
         extractRead
       } ~
-        put {
-          extractRead
-        }
-    }  ~
-      path("v1" / "distributed" / "read") {
-        post {
-          extractRead
-        } ~
-          put {
-            extractRead
-          }
+      put {
+        extractRead
       }
+    }  ~
+    path("v1" / "distributed" / "read") {
+      post {
+        extractRead
+      } ~
+      put {
+        extractRead
+      }
+    }
   }
 
   private def extractRead = extract(readActor)
 
-  /** WRITE
-   *
+  /**
+   * WRITE
+   * <p>
    * This route receives the results of distributed queries
    * initiated by a distributed READ request. The results are
    * formatted and enriched and serialized for publishing.
@@ -191,18 +188,18 @@ class OsqueryRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent,
       post {
         extractWrite
       } ~
-        put {
-          extractWrite
-        }
-    }  ~
-      path("v1" / "distributed" / "write") {
-        post {
-          extractWrite
-        } ~
-          put {
-            extractWrite
-          }
+      put {
+        extractWrite
       }
+    }  ~
+    path("v1" / "distributed" / "write") {
+      post {
+        extractWrite
+      } ~
+      put {
+        extractWrite
+      }
+    }
   }
 
   private def extractWrite = extract(writeActor)

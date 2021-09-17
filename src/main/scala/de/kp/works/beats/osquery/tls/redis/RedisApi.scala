@@ -1,5 +1,4 @@
-package de.kp.works.beats.osquery.redis
-
+package de.kp.works.beats.osquery.tls.redis
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *

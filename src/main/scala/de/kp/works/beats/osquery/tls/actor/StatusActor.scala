@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.actor
+package de.kp.works.beats.osquery.tls.actor
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -21,8 +21,8 @@ package de.kp.works.beats.osquery.actor
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
-import de.kp.works.beats.osquery.actor.StatusActor._
-import de.kp.works.beats.osquery.redis.OsqueryNode
+import de.kp.works.beats.osquery.tls.actor.StatusActor._
+import de.kp.works.beats.osquery.tls.redis.OsqueryNode
 
 import scala.collection.JavaConversions._
 
@@ -32,7 +32,7 @@ import scala.collection.JavaConversions._
  */
 class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
-  import de.kp.works.beats.osquery.OsqueryConstants._
+  import de.kp.works.beats.osquery.tls.OsqueryConstants._
 
   override def receive: Receive = {
 

@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery
+package de.kp.works.beats.osquery.tls
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -20,28 +20,28 @@ package de.kp.works.beats.osquery
 
 object OsqueryConstants {
 
-  val DATA            = "data"
-  val ENROLL_SECRET   = "enroll_secret"
+  val DATA = "data"
+  val ENROLL_SECRET = "enroll_secret"
   val HOST_IDENTIFIER = "host_identifier"
-  val LOG_TYPE        = "log_type"
-  val NODE_IDENT      = "node_ident"
-  val NODE_INVALID    = "node_invalid"
-  val NODE_KEY        = "node_key"
-  val QUERIES         = "queries"
-  val STATUSES        = "statuses"
+  val LOG_TYPE = "log_type"
+  val NODE_IDENT = "node_ident"
+  val NODE_INVALID = "node_invalid"
+  val NODE_KEY = "node_key"
+  val QUERIES = "queries"
+  val STATUSES = "statuses"
 
   /* Normalized fields */
-  val ACTION        = "action"
-  val ADDED         = "added"
+  val ACTION = "action"
+  val ADDED = "added"
   val CALENDAR_TIME = "calendarTime"
-  val COLUMNS       = "columns"
-  val DIFF_RESULTS  = "diffResults"
-  val HOST          = "host"
-  val NAME          = "name"
-  val NODE          = "node"
-  val REMOVED       = "removed"
-  val SNAPSHOT      = "snapshot"
-  val TIMESTAMP     = "timestamp"
-  val UID           = "uid"
+  val COLUMNS = "columns"
+  val DIFF_RESULTS = "diffResults"
+  val HOST = "host"
+  val NAME = "name"
+  val NODE = "node"
+  val REMOVED = "removed"
+  val SNAPSHOT = "snapshot"
+  val TIMESTAMP = "timestamp"
+  val UID = "uid"
 
 }

@@ -1,5 +1,4 @@
-package de.kp.works.beats.osquery.actor
-
+package de.kp.works.beats.osquery.tls.actor
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -28,9 +27,9 @@ import akka.util.{ByteString, Timeout}
 import com.google.gson._
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
-import de.kp.works.beats.osquery.OsqueryConstants
-import de.kp.works.beats.osquery.OsqueryConstants.{NODE_INVALID, NODE_KEY}
-import de.kp.works.beats.osquery.redis.{OsqueryNode, RedisApi}
+import de.kp.works.beats.osquery.tls.OsqueryConstants.{NODE_INVALID, NODE_KEY}
+import de.kp.works.beats.osquery.tls.OsqueryConstants
+import de.kp.works.beats.osquery.tls.redis.{OsqueryNode, RedisApi}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}

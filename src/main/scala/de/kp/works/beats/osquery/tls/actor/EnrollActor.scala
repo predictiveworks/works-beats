@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.actor
+package de.kp.works.beats.osquery.tls.actor
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -19,11 +19,11 @@ package de.kp.works.beats.osquery.actor
  */
 
 import akka.http.scaladsl.model.HttpRequest
-import de.kp.works.beats.osquery.redis.RedisApi
+import de.kp.works.beats.osquery.tls.redis.RedisApi
 
 class EnrollActor extends BaseActor {
 
-  import de.kp.works.beats.osquery.OsqueryConstants._
+  import de.kp.works.beats.osquery.tls.OsqueryConstants._
 
   override def execute(request:HttpRequest):String = {
 

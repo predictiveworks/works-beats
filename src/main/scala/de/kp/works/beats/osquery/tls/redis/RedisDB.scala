@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.redis
+package de.kp.works.beats.osquery.tls.redis
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -21,7 +21,14 @@ package de.kp.works.beats.osquery.redis
 import com.google.gson._
 import de.kp.works.beats.BeatsConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
-
+/**
+ * The Osquery TLS Beat is backed by a REDIS instance that contains
+ * node configurations, query and task specifications and more.
+ *
+ * This REDIS instance must be shared and managed by (e.g.) an Osquery
+ * device management application. This application, however, is out of
+ * scope of this beat.
+ */
 object RedisDB {
 
   private var instance:Option[RedisDB] = None

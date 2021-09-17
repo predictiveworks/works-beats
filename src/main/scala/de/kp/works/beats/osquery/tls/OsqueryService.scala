@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery
+package de.kp.works.beats.osquery.tls
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -21,12 +21,11 @@ package de.kp.works.beats.osquery
 import akka.NotUsed
 import akka.actor.Props
 import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
-import akka.http.scaladsl.server.Directives._
-
 import com.typesafe.config.Config
-import de.kp.works.beats.osquery.actor._
+import de.kp.works.beats.osquery.tls.actor._
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class OsqueryService extends BeatsService(BeatsConf.OSQUERY_CONF) {

@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.actor
+package de.kp.works.beats.osquery.tls.actor
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -22,15 +22,15 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.pattern.ask
 import akka.routing.{DefaultResizer, RoundRobinPool}
 import akka.stream.scaladsl.SourceQueueWithComplete
-import de.kp.works.beats.osquery.actor.ResultActor._
-import de.kp.works.beats.osquery.actor.StatusActor._
-import de.kp.works.beats.osquery.redis.RedisApi
+import de.kp.works.beats.osquery.tls.actor.ResultActor._
+import de.kp.works.beats.osquery.tls.actor.StatusActor._
+import de.kp.works.beats.osquery.tls.redis.RedisApi
 
 import scala.concurrent.Await
 
 class LogActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
-  import de.kp.works.beats.osquery.OsqueryConstants._
+  import de.kp.works.beats.osquery.tls.OsqueryConstants._
   /**
    * We define a common resizer for all children pools
    */
