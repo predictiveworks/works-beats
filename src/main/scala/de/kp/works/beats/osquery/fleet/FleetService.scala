@@ -34,6 +34,22 @@ class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
 
   }
 
-  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = ???
+  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = {
+
+    val receiverCfg = cfg.getConfig("receiver")
+
+    val fleetFolder = receiverCfg.getString("fleetFolder")
+    val numThreads = receiverCfg.getInt("numThreads")
+
+    val eventHandler:FleetHandler = new FleetHandler(Some(queue))
+
+    val receiver = new FleetReceiver(
+      fleetFolder,
+      eventHandler,
+      numThreads)
+
+    receiver.start()
+
+  }
 
 }
