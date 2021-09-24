@@ -18,8 +18,19 @@ package de.kp.works.beats.osquery.fleet
  *
  */
 
+import com.google.gson.JsonObject
+
 object FleetTransform {
 
-  def transform(event:FleetEvent):Option[String] = ???
+  def transform(event:FleetEvent):Option[String] = {
+
+    val json = new JsonObject
+
+    json.addProperty("type", event.eventType)
+    json.addProperty("event", event.eventData)
+
+    Some(json.toString)
+
+  }
 
 }
