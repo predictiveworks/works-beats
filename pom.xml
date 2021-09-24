@@ -18,6 +18,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <encoding>UTF-8</encoding>
 
+    <alpakka.version>2.0.2</alpakka.version>
     <bouncycastle.version>1.68</bouncycastle.version>
     <jackson.version>2.10.0</jackson.version>
     <lettuce.version>6.1.0.M1</lettuce.version>
@@ -37,19 +38,31 @@
   </properties>
 
   <dependencies>
-	<!-- AKKA
-	-->
-	<dependency>
-	  <groupId>com.typesafe.akka</groupId>
-	  <artifactId>akka-http_${scala.binary.version}</artifactId>
-	  <version>10.0.12</version>
-	</dependency>
 
-	<dependency>
+    <!-- AKKA
+    -->
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-http_${scala.binary.version}</artifactId>
+      <version>10.1.14</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-stream_${scala.binary.version}</artifactId>
-      <version>2.5.6</version>
-	</dependency>
+      <version>2.5.31</version>
+    </dependency>
+
+    <!-- ALPAKKA FILESYSTEM
+
+    The version 2.0.2 was selected as it is compliant
+    with other Akka-based libraries of this project.
+    -->
+    <dependency>
+      <groupId>com.lightbend.akka</groupId>
+      <artifactId>akka-stream-alpakka-file_${scala.binary.version}</artifactId>
+      <version>${alpakka.version}</version>
+    </dependency>
 
     <!-- BOUNCY CASTLE
     -->
