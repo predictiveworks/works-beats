@@ -23,6 +23,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.file.{FileHandler, FileMonitor}
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
@@ -41,12 +42,12 @@ class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
     val fleetFolder = receiverCfg.getString("fleetFolder")
     val numThreads = receiverCfg.getInt("numThreads")
 
-    val eventHandler:FleetHandler = new FleetHandler(Some(queue))
+    val eventHandler:FileHandler = new FileHandler(Some(queue), new FleetTransform)
     /*
      * File Monitor to listen to log file
      * changes of a Fleet platform
      */
-    val monitor = new FleetMonitor(fleetFolder, eventHandler)
+    val monitor = new FileMonitor(BeatsConf.FLEET_CONF, fleetFolder, eventHandler)
 
     val receiver = new FleetReceiver(monitor, numThreads)
     receiver.start()

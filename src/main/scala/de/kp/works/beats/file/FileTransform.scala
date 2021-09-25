@@ -1,4 +1,4 @@
-package de.kp.works.beats.zeek
+package de.kp.works.beats.file
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -17,18 +17,9 @@ package de.kp.works.beats.zeek
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-import akka.actor.{ActorRef, Props}
-import de.kp.works.beats.zeek.actor.ZeekActor
-import de.kp.works.beats.{BeatsConf, FileMonitor}
 
-import java.nio.file.Path
+trait FileTransform {
 
-class ZeekMonitor(folder: String, eventHandler: ZeekHandler) extends FileMonitor(BeatsConf.ZEEK_CONF, folder) {
-  /**
-   * A helper method to build a file listener actor
-   */
-  override protected def buildFileActor(path:Path):ActorRef = {
-    val actorName = "File-Actor-" + java.util.UUID.randomUUID.toString
-    system.actorOf(Props(new ZeekActor(path, eventHandler)), actorName)
-  }
+  def transform(event:FileEvent):Option[String]
+
 }

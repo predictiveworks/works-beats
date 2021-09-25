@@ -23,6 +23,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.file.{FileHandler, FileMonitor}
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
@@ -41,12 +42,12 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
     val zeekFolder = receiverCfg.getString("zeekFolder")
     val numThreads = receiverCfg.getInt("numThreads")
 
-    val eventHandler:ZeekHandler = new ZeekHandler(Some(queue))
+    val eventHandler:FileHandler = new FileHandler(Some(queue), new ZeekTransform)
     /*
      * File Monitor to listen to log file
      * changes of a Zeek platform
      */
-    val monitor = new ZeekMonitor(zeekFolder, eventHandler)
+    val monitor = new FileMonitor(BeatsConf.ZEEK_CONF, zeekFolder, eventHandler)
 
     val receiver = new ZeekReceiver(monitor, numThreads)
     receiver.start()

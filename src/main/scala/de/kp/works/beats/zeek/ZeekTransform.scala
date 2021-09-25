@@ -19,10 +19,11 @@ package de.kp.works.beats.zeek
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.file.{FileEvent, FileTransform}
 
-object ZeekTransform {
+class ZeekTransform extends FileTransform {
 
-  def transform(event:ZeekEvent):Option[String] = {
+  override def transform(event:FileEvent):Option[String] = {
 
     val json = new JsonObject
 

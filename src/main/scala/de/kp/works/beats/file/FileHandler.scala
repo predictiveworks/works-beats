@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.fleet
+package de.kp.works.beats.file
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -20,28 +20,34 @@ package de.kp.works.beats.osquery.fleet
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 
-class FleetHandler(
+class FileHandler(
   /*
-   * The queue is the output queue of the Akka based SSE mechanism
+   * The queue is the output queue of the Akka
+   * based SSE mechanism
    */
-  queue:Option[SourceQueueWithComplete[String]]) {
+  queue:Option[SourceQueueWithComplete[String]],
+  /*
+   * The `transform` enables the transformation
+   * of an incoming file event
+   */
+  transform:FileTransform) {
 
-    def write(event:FleetEvent):Unit = { {
+  def write(event:FileEvent):Unit = { {
+    /*
+     * Transform the received event and republish
+     * as serialized [JsonObject]
+     */
+    val serialized = transform.transform(event)
+    if (queue.isDefined && serialized.isDefined)
+      queue.get.offer(serialized.get)
+
+    else {
       /*
-       * Transform the received event and republish
-       * as serialized [JsonObject]
+       * An undefined queue can be useful for testing
+       * and publishes received events to the console
        */
-      val serialized = FleetTransform.transform(event)
-      if (queue.isDefined && serialized.isDefined)
-        queue.get.offer(serialized.get)
-
-      else {
-        /*
-         * An undefined queue can be useful for testing
-         * and publishes received events to the console
-         */
-        println(serialized)
-      }
-    }}
+      println(serialized)
+    }
+  }}
 
 }

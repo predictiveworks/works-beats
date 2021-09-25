@@ -18,9 +18,10 @@ package de.kp.works.beats.zeek
  *
  */
 
+import de.kp.works.beats.file.FileMonitor
 import java.util.concurrent.Executors
 
-class ZeekReceiver(monitor:ZeekMonitor, numThreads:Int = 1) {
+class ZeekReceiver(monitor:FileMonitor, numThreads:Int = 1) {
 
   private val executorService = Executors.newFixedThreadPool(numThreads)
 

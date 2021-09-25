@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.fleet
+package de.kp.works.beats.file
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -18,4 +18,5 @@ package de.kp.works.beats.osquery.fleet
  *
  */
 
-case class FleetEvent(eventType:String, eventData:String)
+case class FileEvent(eventType:String, eventData:String)
+

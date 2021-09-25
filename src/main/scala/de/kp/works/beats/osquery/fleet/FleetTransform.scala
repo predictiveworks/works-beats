@@ -19,10 +19,11 @@ package de.kp.works.beats.osquery.fleet
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.file.{FileEvent, FileTransform}
 
-object FleetTransform {
+class FleetTransform extends FileTransform {
 
-  def transform(event:FleetEvent):Option[String] = {
+  override def transform(event:FileEvent):Option[String] = {
 
     val json = new JsonObject
 

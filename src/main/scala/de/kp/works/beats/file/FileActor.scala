@@ -1,4 +1,4 @@
-package de.kp.works.beats
+package de.kp.works.beats.file
 /*
  * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -23,6 +23,8 @@ import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.file.scaladsl.FileTailSource
 import akka.stream.scaladsl.Source
+import com.google.gson.JsonParser
+import de.kp.works.beats.BeatsConf
 
 import java.io.FileNotFoundException
 import java.nio.file.Path
@@ -39,7 +41,7 @@ object FileActor {
 
 }
 
-abstract class FileActor(name:String, path:Path) extends Actor with ActorLogging {
+class FileActor(name:String, path:Path, eventHandler:FileHandler) extends Actor with ActorLogging {
 
   import FileActor._
   /**
@@ -105,8 +107,21 @@ abstract class FileActor(name:String, path:Path) extends Actor with ActorLogging
     case _ =>
       throw new Exception(s"Unknown file event detected")
   }
+  protected def send(line:String):Unit = {
+    try {
+      /*
+       * Check whether the provided line is
+       * a JSON line
+       */
+      val json = JsonParser.parseString(line)
 
-  protected def send(line:String):Unit
+      val event = FileEvent(eventType = path.toFile.getName, eventData = json.toString)
+      eventHandler.write(event)
+
+    } catch {
+      case _:Throwable => /* Do nothing */
+    }
+  }
 
 }
 
