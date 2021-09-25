@@ -42,12 +42,13 @@ class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
     val numThreads = receiverCfg.getInt("numThreads")
 
     val eventHandler:FleetHandler = new FleetHandler(Some(queue))
+    /*
+     * File Monitor to listen to log file
+     * changes of a Fleet platform
+     */
+    val monitor = new FleetMonitor(fleetFolder, eventHandler)
 
-    val receiver = new FleetReceiver(
-      fleetFolder,
-      eventHandler,
-      numThreads)
-
+    val receiver = new FleetReceiver(monitor, numThreads)
     receiver.start()
 
   }

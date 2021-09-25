@@ -1,4 +1,4 @@
-package de.kp.works.beats.osquery.fleet
+package de.kp.works.beats.zeek
 /*
  * Copyright (c) 20129 - 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -20,7 +20,7 @@ package de.kp.works.beats.osquery.fleet
 
 import java.util.concurrent.Executors
 
-class FleetReceiver(monitor:FleetMonitor, numThreads:Int = 1) {
+class ZeekReceiver(monitor:ZeekMonitor, numThreads:Int = 1) {
 
   private val executorService = Executors.newFixedThreadPool(numThreads)
 
@@ -33,7 +33,7 @@ class FleetReceiver(monitor:FleetMonitor, numThreads:Int = 1) {
       override def run(): Unit = {
 
         val now = new java.util.Date().toString
-        println(s"[FleetReceiver] $now - Receiver worker started.")
+        println(s"[ZeekReceiver] $now - Receiver worker started.")
 
         monitor.start()
 
@@ -53,10 +53,11 @@ class FleetReceiver(monitor:FleetMonitor, numThreads:Int = 1) {
 
   def stop():Unit = {
 
-    /* Stop listening to the Fleet log events stream  */
+    /* Stop listening to the Zeek log events stream  */
     executorService.shutdown()
     executorService.shutdownNow()
 
   }
 
 }
+

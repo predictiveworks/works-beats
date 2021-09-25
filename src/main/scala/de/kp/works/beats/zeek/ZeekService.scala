@@ -34,6 +34,24 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
 
   }
 
-  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = ???
+  override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = {
+
+    val receiverCfg = cfg.getConfig("receiver")
+
+    val zeekFolder = receiverCfg.getString("zeekFolder")
+    val numThreads = receiverCfg.getInt("numThreads")
+
+    val eventHandler:ZeekHandler = new ZeekHandler(Some(queue))
+    /*
+     * File Monitor to listen to log file
+     * changes of a Zeek platform
+     */
+    val monitor = new ZeekMonitor(zeekFolder, eventHandler)
+
+    val receiver = new ZeekReceiver(monitor, numThreads)
+    receiver.start()
+
+  }
+
 
 }
