@@ -28,13 +28,6 @@ import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class FleetService extends BeatsService(BeatsConf.FLEET_CONF) {
 
-  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route  = {
-
-    val routes = new FleetRoutes(source)
-    routes.event
-
-  }
-
   override def onStart(queue: SourceQueueWithComplete[String], cfg: Config): Unit = {
 
     val receiverCfg = cfg.getConfig("receiver")

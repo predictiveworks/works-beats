@@ -28,13 +28,6 @@ import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
 
-  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
-
-    val routes = new ThingsRoutes(source)
-    routes.event
-
-  }
-
   override def onStart(queue: SourceQueueWithComplete[String], thingsCfg:Config):Unit = {
     /*
      * After having started the Http(s) server,

@@ -28,13 +28,6 @@ import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
 
-  override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
-
-    val routes = new CTIRoutes(source)
-    routes.event
-
-  }
-
   override def onStart(queue: SourceQueueWithComplete[String], openCtiCfg:Config):Unit = {
     /*
      * After having started the Http(s) server,

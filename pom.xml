@@ -20,6 +20,7 @@
 
     <alpakka.version>2.0.2</alpakka.version>
     <bouncycastle.version>1.68</bouncycastle.version>
+    <hivemq.version>1.2.0</hivemq.version>
     <jackson.version>2.10.0</jackson.version>
     <lettuce.version>6.1.0.M1</lettuce.version>
     <milo.version>0.6.3</milo.version>
@@ -29,6 +30,7 @@
     <redis.spark.version>2.6.0</redis.spark.version>
     <scopt.version>4.0.0</scopt.version>
     <spark.version>2.4.7</spark.version>
+
     <!--
     The Scala version that has been used for testing
     in 2.11.12
@@ -130,6 +132,14 @@
       <groupId>org.eclipse.paho</groupId>
       <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
       <version>${paho.version}</version>
+    </dependency>
+
+    <!-- HIVEMQ
+    -->
+    <dependency>
+      <groupId>com.hivemq</groupId>
+      <artifactId>hivemq-mqtt-client</artifactId>
+      <version>${hivemq.version}</version>
     </dependency>
 
     <!-- REDIS SPARK

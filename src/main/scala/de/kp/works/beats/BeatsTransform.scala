@@ -37,69 +37,72 @@ trait BeatsTransform {
       val value = payload(key)
       value match {
         case _: List[Any] =>
+          val list = value.asInstanceOf[List[Any]]
           /*
            * We support [List] values with [Basic]
            * and [Map] data types
            */
-          val list = value.asInstanceOf[List[Any]]
           if (list.nonEmpty) {
 
             val attrJson = new JsonObject
             attrJson.add("metadata", new JsonObject)
 
             val head = list.head
-            head match {
-              case _: Map[String,Any] =>
-                val valueJson = new JsonArray
-                list.foreach(entry => {
+            if (head.isInstanceOf[Map[_, _]]) {
 
-                  val entryMap = entry.asInstanceOf[Map[String, Any]]
-                  if (entryMap.nonEmpty) {
+              val valueJson = new JsonArray
+              list.foreach(entry => {
 
-                    val entryJson = new JsonObject
-                    /*
-                     * {
-                     *    "name1" : { "type1": "...", "value1": "..."},
-                     *    "name2" : { "type2": "...", "value2": "..."},
-                     * }
-                     */
-                    entryMap.foreach{case (k,v) =>
+                val entryMap = entry.asInstanceOf[Map[String, Any]]
+                if (entryMap.nonEmpty) {
 
-                      val itemJson = new JsonObject
+                  val entryJson = new JsonObject
+                  /*
+                   * {
+                   *    "name1" : { "type1": "...", "value1": "..."},
+                   *    "name2" : { "type2": "...", "value2": "..."},
+                   * }
+                   */
+                  entryMap.foreach{case (k,v) =>
 
-                      val basicType = getBasicType(v)
-                      itemJson.addProperty("type", basicType)
+                    val itemJson = new JsonObject
 
-                      putValue(v, basicType, itemJson)
-                      entryJson.add(k, itemJson)
-                    }
+                    val basicType = getBasicType(v)
+                    itemJson.addProperty("type", basicType)
 
-                    valueJson.add(entryJson)
-
+                    putValue(v, basicType, itemJson)
+                    entryJson.add(k, itemJson)
                   }
-                })
-                val attrType = "List[Map]"
-                attrJson.addProperty("type", attrType)
 
-                attrJson.add("value", valueJson)
+                  valueJson.add(entryJson)
 
-              case _ =>
-                /*
-                 * A basic data type is expected in
-                 * this case
-                 */
-                val basicType = getBasicType(head)
+                }
+              })
 
-                val attrType = s"List[$basicType]"
-                attrJson.addProperty("type", attrType)
+              val attrType = "List[Map]"
+              attrJson.addProperty("type", attrType)
 
-                putValues(list, basicType, attrJson)
+              attrJson.add("value", valueJson)
+
+            }
+            else {
+              /*
+               * A basic data type is expected in
+               * this case
+               */
+              val basicType = getBasicType(head)
+
+              val attrType = s"List[$basicType]"
+              attrJson.addProperty("type", attrType)
+
+              putValues(list, basicType, attrJson)
+
             }
 
             entityJson.add(key, attrJson)
 
           }
-        case _: Map[String, Any] =>
+        case _: Map[_, _] =>
           val map = value.asInstanceOf[Map[String, Any]]
           if (map.nonEmpty) {
 
@@ -193,11 +196,11 @@ trait BeatsTransform {
        */
       case "Date" =>
         attrVal match {
-          case _: java.util.Date =>
-            val value = attrVal.asInstanceOf[java.util.Date].toString
-            attrJson.addProperty("value", value)
           case _: java.sql.Date =>
             val value = attrVal.asInstanceOf[java.sql.Date].toString
+            attrJson.addProperty("value", value)
+          case _: java.util.Date =>
+            val value = attrVal.asInstanceOf[java.util.Date].toString
             attrJson.addProperty("value", value)
           case _: java.time.LocalDate =>
             val value = attrVal.asInstanceOf[java.time.LocalDate].toString
@@ -291,14 +294,14 @@ trait BeatsTransform {
        */
       case "Date" =>
         attrVal.head match {
-          case _: java.util.Date =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.util.Date].toString
-              arrayJson.add(value)
-            })
           case _: java.sql.Date =>
             attrVal.foreach(item => {
               val value = item.asInstanceOf[java.sql.Date].toString
+              arrayJson.add(value)
+            })
+          case _: java.util.Date =>
+            attrVal.foreach(item => {
+              val value = item.asInstanceOf[java.util.Date].toString
               arrayJson.add(value)
             })
           case _: java.time.LocalDate =>
@@ -366,10 +369,10 @@ trait BeatsTransform {
       /*
        * Datetime support
        */
-      case _: java.util.Date          => "Date"
       case _: java.sql.Date           => "Date"
-      case _: java.time.LocalDate     => "Date"
       case _: java.sql.Timestamp      => "Timestamp"
+      case _: java.util.Date          => "Date"
+      case _: java.time.LocalDate     => "Date"
       case _: java.time.LocalTime     => "Timestamp"
       case _: java.time.LocalDateTime => "Datetime"
       /*

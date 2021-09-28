@@ -119,10 +119,18 @@ abstract class BeatsService(name:String) {
   }
 
   def onStart(queue: SourceQueueWithComplete[String], cfg:Config):Unit
-
+  /**
+   * This method defines the base output `event` route
+   * to retrieve the generated Server Sent Events (SSE)
+   */
   def buildRoute(
-    queue:SourceQueueWithComplete[String],
-    source:Source[ServerSentEvent, NotUsed]):Route
+    queue: SourceQueueWithComplete[String],
+    source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    val routes = new BeatsRoutes(source)
+    routes.event
+
+  }
 
   def stop():Unit = {
 

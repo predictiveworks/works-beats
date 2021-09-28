@@ -89,10 +89,8 @@ object BeatsConf {
 
     val now = new java.util.Date().toString
 
-    if (cfg.isEmpty) {
+    if (cfg.isEmpty)
       throw new Exception(s"[ERROR] $now - Configuration not initialized.")
-
-    }
 
     name match {
       case FIWARE_CONF      => cfg.get.getConfig(FIWARE_CONF)
@@ -105,5 +103,16 @@ object BeatsConf {
       case _ =>
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")
     }
+  }
+
+  def getOutputCfg:Config = {
+
+    val now = new java.util.Date().toString
+
+    if (cfg.isEmpty)
+      throw new Exception(s"[ERROR] $now - Configuration not initialized.")
+
+    cfg.get.getConfig("output")
+
   }
 }
