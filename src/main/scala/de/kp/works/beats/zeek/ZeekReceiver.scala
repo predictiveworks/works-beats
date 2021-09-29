@@ -47,7 +47,7 @@ class ZeekReceiver(monitor:FileMonitor, numThreads:Int = 1) {
       executorService.execute(worker)
 
     } catch {
-      case e:Exception => executorService.shutdown()
+      case _:Exception => executorService.shutdown()
     }
 
   }

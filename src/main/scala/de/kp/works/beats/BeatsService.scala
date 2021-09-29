@@ -49,6 +49,12 @@ abstract class BeatsService(name:String) {
    * Common timeout for all Akka connection
    */
   implicit val timeout: Timeout = Timeout(5.seconds)
+  /**
+   * The configuration of the Beat output; the current implementation
+   * supports the provisioning of events via SSE queue (default) and
+   * the publishing via MQTT protocol to a certain MQTT broker.
+   */
+  private var outputCfg:Option[Config] = None
 
   def start(config:Option[String] = None):Unit = {
 
@@ -61,10 +67,15 @@ abstract class BeatsService(name:String) {
 
     }
     /*
-     * Retrieve configuration that refers to the provided
-     * `name`
+     * Extract and assign the output configuration
      */
-    val cfg = BeatsConf.getBeatCfg(name)
+    outputCfg = Some(BeatsConf.getOutputCfg)
+    /*
+     * Retrieve configuration that refers to the provided
+     * Beat (name)
+     */
+    val beatCfg = BeatsConf.getBeatCfg(name)
+
     /*
      * The queue is used as an internal buffer that receives
      * events published during internal longer lasting processes.
@@ -97,12 +108,12 @@ abstract class BeatsService(name:String) {
      * route and differ from [FiwareBeat]
      */
     val routes = buildRoute(queue, source)
-    val binding = cfg.getConfig("binding")
+    val binding = beatCfg.getConfig("binding")
 
     val host = binding.getString("host")
     val port = binding.getInt("port")
 
-    val security = cfg.getConfig("security")
+    val security = beatCfg.getConfig("security")
     server =
       if (security.getString("ssl") == "false")
         Some(Http().bindAndHandle(routes , host, port))
@@ -114,14 +125,15 @@ abstract class BeatsService(name:String) {
 
     /* After start processing */
 
-    onStart(queue, cfg)
+    onStart(queue, beatCfg)
 
   }
-
-  def onStart(queue: SourceQueueWithComplete[String], cfg:Config):Unit
   /**
    * This method defines the base output `event` route
-   * to retrieve the generated Server Sent Events (SSE)
+   * to retrieve the generated Server Sent Events (SSE).
+   *
+   * This route is always built independent of whether
+   * the configured output channel is set to `sse`.
    */
   def buildRoute(
     queue: SourceQueueWithComplete[String],
@@ -131,6 +143,13 @@ abstract class BeatsService(name:String) {
     routes.event
 
   }
+  /**
+   * A public method to expose the output configuration
+   * to the specific Works Beats.
+   */
+  def getOutputCfg:Config = outputCfg.get
+
+  def onStart(queue: SourceQueueWithComplete[String], cfg:Config):Unit
 
   def stop():Unit = {
 

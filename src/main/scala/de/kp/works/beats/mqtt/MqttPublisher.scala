@@ -25,6 +25,21 @@ object MqttPublisher {
 
   private val mqttCfg = BeatsConf.getOutputCfg.getConfig("mqtt")
 
+  def build: MqttPublisher = {
+
+    val client = mqttCfg.getString("client")
+    client match {
+      case "hive" =>
+        buildHive
+
+      case "paho" =>
+        buildPaho
+
+      case _ =>
+        throw new Exception(s"The configured MQTT client `$client` is not support.")
+    }
+
+  }
   /** HIVEMQ SUPPORT **/
 
   /**

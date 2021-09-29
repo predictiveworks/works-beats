@@ -24,13 +24,14 @@ import akka.stream.alpakka.file.DirectoryChange
 import akka.stream.alpakka.file.scaladsl.DirectoryChangesSource
 import akka.util.Timeout
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 
 import java.nio.file.{FileSystem, FileSystems, Path}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
-class FileMonitor(name:String, folder:String, eventHandler: FileHandler) {
+class FileMonitor(name:String, folder:String, outputHandler: OutputHandler) {
 
   import FileActor._
 
@@ -153,7 +154,7 @@ class FileMonitor(name:String, folder:String, eventHandler: FileHandler) {
    */
   protected def buildFileActor(path:Path):ActorRef = {
     val actorName = "File-Actor-" + java.util.UUID.randomUUID.toString
-    system.actorOf(Props(new FileActor(name, path, eventHandler)), actorName)
+    system.actorOf(Props(new FileActor(name, path, outputHandler)), actorName)
   }
 
 }

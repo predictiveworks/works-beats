@@ -25,6 +25,7 @@ import akka.stream.alpakka.file.scaladsl.FileTailSource
 import akka.stream.scaladsl.Source
 import com.google.gson.JsonParser
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 
 import java.io.FileNotFoundException
 import java.nio.file.Path
@@ -41,7 +42,7 @@ object FileActor {
 
 }
 
-class FileActor(name:String, path:Path, eventHandler:FileHandler) extends Actor with ActorLogging {
+class FileActor(name:String, path:Path, outputHandler:OutputHandler) extends Actor with ActorLogging {
 
   import FileActor._
   /**
@@ -107,16 +108,16 @@ class FileActor(name:String, path:Path, eventHandler:FileHandler) extends Actor 
     case _ =>
       throw new Exception(s"Unknown file event detected")
   }
+
   protected def send(line:String):Unit = {
     try {
       /*
-       * Check whether the provided line is
-       * a JSON line
+       * Check whether the provided line is a JSON line
        */
       val json = JsonParser.parseString(line)
-
       val event = FileEvent(eventType = path.toFile.getName, eventData = json.toString)
-      eventHandler.write(event)
+
+      outputHandler.sendFileEvent(event)
 
     } catch {
       case _:Throwable => /* Do nothing */

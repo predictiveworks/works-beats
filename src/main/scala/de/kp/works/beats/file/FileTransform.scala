@@ -20,6 +20,6 @@ package de.kp.works.beats.file
 
 trait FileTransform {
 
-  def transform(event:FileEvent):Option[String]
+  def transform(event:FileEvent, namespace:String):Option[String]
 
 }

@@ -23,11 +23,16 @@ import de.kp.works.beats.file.{FileEvent, FileTransform}
 
 class FleetTransform extends FileTransform {
 
-  override def transform(event:FileEvent):Option[String] = {
+  override def transform(event:FileEvent, namespace:String):Option[String] = {
 
     val json = new JsonObject
-
-    json.addProperty("type", event.eventType)
+    /*
+     * In case of a [FileEvent], the `eventType` specifies
+     * the file name. It is enriched with the namespace,
+     *
+     * e.g `fleet/result.log`.
+     */
+    json.addProperty("type", s"$namespace/${event.eventType}")
     json.addProperty("event", event.eventData)
 
     Some(json.toString)
