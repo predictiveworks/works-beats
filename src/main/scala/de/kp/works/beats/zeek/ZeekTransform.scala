@@ -40,7 +40,7 @@ class ZeekTransform extends FileTransform {
      *
      * e.g `zeek/dns.log`.
      */
-    json.addProperty("type", s"$namespace/${event.eventType}")
+    json.addProperty("type", s"beat/$namespace/${event.eventType}")
     json.addProperty("event", event.eventData)
 
     json

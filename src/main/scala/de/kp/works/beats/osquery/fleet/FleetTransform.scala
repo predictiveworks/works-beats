@@ -50,7 +50,7 @@ class FleetTransform extends FileTransform {
 
         val json = new JsonObject
 
-        json.addProperty("type", s"$namespace/$query")
+        json.addProperty("type", s"beat/$namespace/$query")
         json.addProperty("event", payload)
 
         json
