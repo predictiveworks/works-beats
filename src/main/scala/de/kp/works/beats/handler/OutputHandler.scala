@@ -96,7 +96,7 @@ class OutputHandler {
     if (namespace.isEmpty)
       throw new Exception(s"[OutputHandler] No namespace configured to transform a [FileEvent].")
 
-    val serialized = fileTransform.get.transform(event, namespace.get)
+    val jsonObject = fileTransform.get.transform(event, namespace.get)
     /*
      * Check which output channel is configured
      */
@@ -105,31 +105,31 @@ class OutputHandler {
 
     channel.get match {
       case "mqtt" =>
-        if (mqttPublisher.isDefined && serialized.isDefined) {
+        if (mqttPublisher.isDefined) {
           /*
-           * The current implementation leverages the `namespace`
-           * value and the file name ([FileEvent].eventType) to
-           * define an MQTT topic.
+           * The current implementation leverages the `type` assigned
+           * to the transformed [JsonObject] as semantic indicator
+           * and topic
            */
-          val topics = Array(s"$namespace/${event.eventType}")
-          mqttPublisher.get.publish(topics, serialized.get)
+          val topics = Array(jsonObject.get("type").getAsString)
+          mqttPublisher.get.publish(topics, jsonObject.toString)
 
         }
 
       case "sse" =>
-        if (queue.isDefined && serialized.isDefined)
-          queue.get.offer(serialized.get)
+        if (queue.isDefined)
+          queue.get.offer(jsonObject.toString)
 
         else {
           /*
            * An undefined queue can be useful for testing
            * and publishes received events to the console
            */
-          println(serialized)
+          println(jsonObject)
         }
 
       case _ =>
-        println(serialized)
+        println(jsonObject)
 
     }
 

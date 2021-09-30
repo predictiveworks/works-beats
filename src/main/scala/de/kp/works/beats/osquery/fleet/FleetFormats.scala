@@ -1,6 +1,6 @@
-package de.kp.works.beats.file
+package de.kp.works.beats.osquery.fleet
 /*
- * Copyright (c) 2021 Dr. Krusche & Partner PartG. All rights reserved.
+ * Copyright (c) 20129 - 2021 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,10 +18,25 @@ package de.kp.works.beats.file
  *
  */
 
-import com.google.gson.JsonObject
+object FleetFormats extends Enumeration {
 
-trait FileTransform {
+  type FleetFormat = Value
 
-  def transform(event:FileEvent, namespace:String):JsonObject
+  val RESULT: FleetFormats.Value = Value(1, "result.log")
+  val STATUS: FleetFormats.Value = Value(2, "status.log")
 
+}
+
+object FleetFormatUtil {
+
+  def fromFile(fileName:String):FleetFormats.Value = {
+
+    val formats = FleetFormats.values.filter(format => {
+      fileName.contains(format.toString)
+    })
+
+    if (formats.isEmpty) return null
+    formats.head
+
+  }
 }

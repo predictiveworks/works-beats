@@ -20,10 +20,18 @@ package de.kp.works.beats.zeek
 
 import com.google.gson.JsonObject
 import de.kp.works.beats.file.{FileEvent, FileTransform}
-
+/**
+ * Zeek sensor platform generates and updates 35+ log files
+ * (conn.log, dns.log, http.log, etc.) that are monitored by
+ * the [FileMonitor].
+ *
+ * The file name can be used as a semantic (content) indicator,
+ * and no additional transformation must be applied to create
+ * meaningful event types or topics.
+ */
 class ZeekTransform extends FileTransform {
 
-  override def transform(event:FileEvent, namespace:String):Option[String] = {
+  override def transform(event:FileEvent, namespace:String):JsonObject = {
 
     val json = new JsonObject
     /*
@@ -35,7 +43,7 @@ class ZeekTransform extends FileTransform {
     json.addProperty("type", s"$namespace/${event.eventType}")
     json.addProperty("event", event.eventData)
 
-    Some(json.toString)
+    json
 
   }
 
