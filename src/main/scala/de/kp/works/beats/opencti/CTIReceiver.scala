@@ -1,6 +1,7 @@
 package de.kp.works.beats.opencti
 
 import akka.stream.scaladsl.SourceQueueWithComplete
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 
 import java.util.concurrent.{ExecutorService, Executors}
@@ -37,11 +38,7 @@ class CTIReceiver(
     * access a secure OpenCTI server
     */
    sslOptions:Option[SslOptions] = None,
-   /*
-    * The SSE output queue to publish the
-    * incoming OpenCTI events
-    */
-   queue:Option[SourceQueueWithComplete[String]] = None,
+   outputHandler:OutputHandler,
    /* The number of threads to use for processing */
    numThreads:Int = 1) {
 
@@ -52,10 +49,6 @@ class CTIReceiver(
      * Wrap connector and output handler in a runnable
      */
     val worker = new Runnable {
-      /*
-       * Initialize the output handler
-       */
-      private val outputHandler = new CTIHandler(queue)
       /*
        * Initialize the connector to the
        * OpenCTI server

@@ -28,7 +28,7 @@ import de.kp.works.beats.opencti.transform._
  * This transformer can be used to harmonize the
  * OpenCTI events to a standard format.
  */
-object CTITransform extends BeatsTransform {
+class CTITransform extends BeatsTransform {
   /*
    * Events format
    *
@@ -68,7 +68,7 @@ object CTITransform extends BeatsTransform {
   },
    *
    */
-  def transform(sseEvent:SseEvent):Option[JsonObject] = {
+  def transform(sseEvent:SseEvent, namespace:String):Option[JsonObject] = {
     /*
      * This transform method supports the STIX data format version 0.2,
      * starting with version v4.5.1 of OpenCTI.
@@ -132,20 +132,62 @@ object CTITransform extends BeatsTransform {
       }
 
       if (payload.isEmpty) return None
-
+      /*
+       * Build unified SSE event format that is
+       * harmonized with all other Beat event output
+       * formats.
+       *
+       * OpenCTI distinguishes `create`, `delete`,
+       * `update` etc events
+       */
       event match {
         case "create" =>
-          CreateTransform.transform(payload)
+          val eventType = s"beat/$namespace/create"
+          val eventData = CreateTransform.transform(payload)
+
+          if (eventData.isDefined) {
+
+            val sseEvent = new JsonObject
+            sseEvent.addProperty("type", eventType)
+            sseEvent.addProperty("event", eventData.get.toString)
+
+            Some(sseEvent)
+
+          } else None
+
         case "delete" =>
-          DeleteTransform.transform(payload)
+          val eventType = s"beat/$namespace/delete"
+          val eventData = DeleteTransform.transform(payload)
+
+          if (eventData.isDefined) {
+
+            val sseEvent = new JsonObject
+            sseEvent.addProperty("type", eventType)
+            sseEvent.addProperty("event", eventData.get.toString)
+
+            Some(sseEvent)
+
+          } else None
+
         case "merge" | "sync" => None
         case "update" =>
-          /*
+          val eventType = s"beat/$namespace/update"
+         /*
            * This implementation is based on the OpenCTI
            * documentation for stream events (v4.5.1) and
            * STIX data version v02
            */
-          UpdateTransform.transform(payload)
+          val eventData = UpdateTransform.transform(payload)
+
+          if (eventData.isDefined) {
+
+            val sseEvent = new JsonObject
+            sseEvent.addProperty("type", eventType)
+            sseEvent.addProperty("event", eventData.get.toString)
+
+            Some(sseEvent)
+
+          } else None
 
         case _ =>
           val now = new java.util.Date().toString

@@ -22,6 +22,7 @@ import akka.stream.scaladsl.SourceQueueWithComplete
 import de.kp.works.beats.file.{FileEvent, FileTransform}
 import de.kp.works.beats.fiware.{FiwareEvent, FiwareTransform}
 import de.kp.works.beats.mqtt.MqttPublisher
+import de.kp.works.beats.opencti.{CTITransform, SseEvent}
 import de.kp.works.beats.thingsboard.{MqttEvent, ThingsTransform}
 
 class OutputHandler {
@@ -43,6 +44,10 @@ class OutputHandler {
    * channel.
    */
   private var queue:Option[SourceQueueWithComplete[String]] = None
+  /*
+   * [CTITransform] supports OpenCTI Beat
+   */
+  private var ctiTransform:Option[CTITransform] = None
   /*
    * [FileTransform] supports Fleet & Zeek Beats
    */
@@ -93,6 +98,10 @@ class OutputHandler {
 
   /** INPUT SUPPORT **/
 
+  def setCTITransform(transform:CTITransform):Unit = {
+    ctiTransform = Some(transform)
+  }
+
   def setFileTransform(transform:FileTransform):Unit = {
     fileTransform = Some(transform)
   }
@@ -106,6 +115,42 @@ class OutputHandler {
   }
 
   /** OUTPUT SUPPORT **/
+  /**
+   * This method defines the OpenCTI Beat specific
+   * output handling
+   */
+  def sendCTIEvent(ctiEvent: SseEvent):Unit = {
+    /*
+     * Transform the received event into a serialized
+     * [JsonObject]
+     */
+    if (ctiTransform.isEmpty)
+      throw new Exception(s"[OutputHandler] No transformer configured to transform a [SseEvent].")
+
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [SseEvent].")
+
+    val jsonObject = ctiTransform.get.transform(ctiEvent, namespace.get)
+    /*
+     * Check which output channel is configured
+     */
+    if (channel.isEmpty)
+      throw new Exception(s"[OutputHandler] No output channel configured.")
+
+    channel.get match {
+      case "mqtt" =>
+        throw new Exception("not implemented yet.")
+
+      case "sse" =>
+        if (queue.isDefined && jsonObject.isDefined)
+          queue.get.offer(jsonObject.get.toString)
+
+      case _ =>
+        println(jsonObject)
+
+    }
+
+  }
 
   def sendFileEvent(event:FileEvent):Unit = {
     /*

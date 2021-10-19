@@ -23,6 +23,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
@@ -54,15 +55,52 @@ class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
     val sslOptions = SslOptions.getSslOptions(securityCfg)
 
     val numThreads = receiverCfg.getInt("numThreads")
+    val outputHandler:OutputHandler = buildOutputHandler(queue)
+
     val receiver = new CTIReceiver(
       endpoint,
       authToken,
       Some(sslOptions),
-      Some(queue),
+      outputHandler,
       numThreads
     )
 
     receiver.start()
 
   }
+
+  private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
+
+    val outputHandler:OutputHandler = new OutputHandler
+    outputHandler.setNamespace(BeatsConf.OPENCTI_NAME)
+
+    val channel = getOutputCfg.getString("channel")
+    outputHandler.setChannel(channel)
+    /*
+     * Configure the [OutputHandler] to transform incoming
+     * SseEvent]s prior to publishing with [CTITransform]
+     */
+    outputHandler.setCTITransform(new CTITransform)
+
+    channel match {
+      case "mqtt" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [MqttPublisher] when setting the respective channel
+       */
+      case "sse" =>
+        /*
+         * Configure the [OutputHandler] to write incoming
+         * [MqttEvent]s to the SSE output queue
+         */
+        outputHandler.setSseQueue(queue)
+
+      case _ =>
+        throw new Exception(s"The configured output channel `$channel` is not supported.")
+    }
+
+    outputHandler
+
+  }
+
 }

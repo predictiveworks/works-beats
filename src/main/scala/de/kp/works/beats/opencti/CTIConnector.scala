@@ -18,6 +18,7 @@ package de.kp.works.beats.opencti
  *
  */
 
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 import okhttp3.Response
 import okhttp3.sse.{EventSource, EventSourceListener, EventSources}
@@ -28,10 +29,10 @@ import okhttp3.sse.{EventSource, EventSourceListener, EventSources}
  * to the provided output handler.
  */
 class CTIConnector(
-   endpoint: String,
-   handler: CTIHandler,
-   authToken: Option[String] = None,
-   sslOptions: Option[SslOptions] = None) {
+  endpoint: String,
+  outputHandler: OutputHandler,
+  authToken: Option[String] = None,
+  sslOptions: Option[SslOptions] = None) {
 
   def stop(): Unit = {
     /* Do nothing */
@@ -68,7 +69,7 @@ class CTIConnector(
        * }
        */
       override def onEvent(eventSource:EventSource, eventId:String, eventType:String, data:String):Unit = {
-        handler.write(SseEvent(eventId, eventType, data))
+        outputHandler.sendCTIEvent(SseEvent(eventId, eventType, data))
       }
 
       override def onClosed(eventSource:EventSource) {

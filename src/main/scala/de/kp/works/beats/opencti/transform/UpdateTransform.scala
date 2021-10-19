@@ -99,7 +99,8 @@ object UpdateTransform extends BeatsTransform {
                * to internal identifiers are skipped
                */
               val content = patch(mode)
-                .asInstanceOf[Map[String, Any]](attrName).asInstanceOf[List[Any]]
+                .asInstanceOf[Map[String, Any]](attrName)
+                .asInstanceOf[List[Any]]
 
               if (content.nonEmpty) {
 
@@ -107,7 +108,8 @@ object UpdateTransform extends BeatsTransform {
                 attrJson.add("metadata", metaJson)
 
                 val values = content.map {
-                  case map: Map[String, Any] => map("value")
+                  case map: Map[_, Any] => map
+                    .asInstanceOf[Map[String,Any]]("value")
                   case entry => entry
                 }
 
