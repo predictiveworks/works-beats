@@ -58,7 +58,7 @@ class MqttConnector(
   mqttCreds: MqttCreds,
   sslOptions: Option[SslOptions] = None) {
 
-  private val thingsboardCfg = BeatsConf.getBeatCfg(BeatsConf.THINGSBOARD_CONF)
+  private val thingsboardCfg = BeatsConf.getBeatCfg(BeatsConf.THINGS_CONF)
   private val mqttCfg = thingsboardCfg.getConfig("mqtt")
   /**
    * This topic is used to subscribe to shared device attribute changes.

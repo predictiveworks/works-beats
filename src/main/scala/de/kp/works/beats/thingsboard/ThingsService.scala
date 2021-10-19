@@ -27,7 +27,7 @@ import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
-class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
+class ThingsService extends BeatsService(BeatsConf.THINGS_CONF) {
 
   override def onStart(queue: SourceQueueWithComplete[String], thingsCfg:Config):Unit = {
     /*
@@ -47,7 +47,7 @@ class ThingsService extends BeatsService(BeatsConf.THINGSBOARD_CONF) {
     val numThreads = mqttCfg.getInt("numThreads")
 
     val outputHandler:OutputHandler = new OutputHandler
-    outputHandler.setNamespace(BeatsConf.THINGSBOARD_NAME)
+    outputHandler.setNamespace(BeatsConf.THINGS_NAME)
 
     val channel = getOutputCfg.getString("channel")
     outputHandler.setChannel(channel)
