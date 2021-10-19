@@ -25,6 +25,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 import scala.concurrent.Await
@@ -32,9 +33,15 @@ import scala.concurrent.Await
 class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
   override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
+    /*
+     * In contrast to other Works Beats, the output handler
+     * has to be constructed here, because it is delegated
+     * to the respective actor.
+     */
+    val outputHandler:OutputHandler = buildOutputHandler(queue)
 
     lazy val fiwareActor = system
-      .actorOf(Props(new FiwareActor(queue)), FiwareActor.ACTOR_NAME)
+      .actorOf(Props(new FiwareActor(outputHandler)), FiwareActor.ACTOR_NAME)
 
     val actors = Map(FiwareActor.ACTOR_NAME -> fiwareActor)
     val routes = new FiwareRoutes(actors, source)
@@ -66,7 +73,7 @@ class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
         FiwareSubscriptions.register(sid, subscription)
 
       } catch {
-        case t:Throwable =>
+        case _:Throwable =>
           /*
            * The current implementation of the Fiware
            * support is an optimistic approach that
@@ -82,4 +89,39 @@ class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
     })
 
   }
+
+  private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
+
+    val outputHandler:OutputHandler = new OutputHandler
+    outputHandler.setNamespace(BeatsConf.FIWARE_NAME)
+
+    val channel = getOutputCfg.getString("channel")
+    outputHandler.setChannel(channel)
+    /*
+     * Configure the [OutputHandler] to transform incoming
+     * [FiwareEvent]s prior to publishing with [FiwareTransform]
+     */
+    outputHandler.setFiwareTransform(new FiwareTransform)
+
+    channel match {
+      case "mqtt" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [MqttPublisher] when setting the respective channel
+       */
+      case "sse" =>
+        /*
+         * Configure the [OutputHandler] to write incoming
+         * [FiwareEvent]s to the SSE output queue
+         */
+        outputHandler.setSseQueue(queue)
+
+      case _ =>
+        throw new Exception(s"The configured output channel `$channel` is not supported.")
+    }
+
+    outputHandler
+
+  }
+
 }

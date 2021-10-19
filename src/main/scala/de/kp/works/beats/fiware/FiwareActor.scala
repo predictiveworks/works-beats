@@ -18,18 +18,18 @@ package de.kp.works.beats.fiware
  *
  */
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy}
 import akka.actor.SupervisorStrategy._
+import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy}
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.SourceQueueWithComplete
 import akka.util.{ByteString, Timeout}
 import com.google.gson._
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 
-import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.util.Try
 
 abstract class BaseActor extends Actor with ActorLogging {
@@ -136,13 +136,11 @@ abstract class BaseActor extends Actor with ActorLogging {
  * notification requests from the Orion Broker. Each notification
  * is checked whether it refers to a registered subscriptions,
  * and, if this is the case, further processing is delegated to
- * the Ignite (Fiware) Streamer
+ * the output handler
  */
-class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
+class FiwareActor(outputHandler:OutputHandler) extends BaseActor {
 
   import FiwareActor._
-
-  private val namespace = BeatsConf.FIWARE_CONF
 
   override def receive: Receive = {
 
@@ -167,42 +165,7 @@ class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
      * into internal notification format
      */
     val fiwareEvent = toFiwareEvent(request)
-    /*
-     * Before we continue to delegate the notification
-     * to the Ignite streamer, we check whether the
-     * notification refers to a registered subscription.
-     */
-    val json = fiwareEvent.payload
-    /*
-     * {
-        "data": [
-            {
-                "id": "Room1",
-                "temperature": {
-                    "metadata": {},
-                    "type": "Float",
-                    "value": 28.5
-                },
-                "type": "Room"
-            }
-        ],
-        "subscriptionId": "57458eb60962ef754e7c0998"
-       }
-     */
-    val sid = json.get("subscriptionId").getAsString
-    if (FiwareSubscriptions.isRegistered(sid)) {
-      /*
-       * Send JSON representation of the Fiware
-       * notification to the provided SSE queue
-       */
-      val eventType = s"beat/$namespace/notification"
-
-      val sseEvent = new JsonObject
-      sseEvent.addProperty("type", eventType)
-      sseEvent.addProperty("event", fiwareEvent.toJson.toString)
-
-      queue.offer(sseEvent.toString)
-    }
+    outputHandler.sendFiwareEvent(fiwareEvent)
 
   }
 }

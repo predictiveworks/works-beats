@@ -20,6 +20,7 @@ package de.kp.works.beats.handler
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import de.kp.works.beats.file.{FileEvent, FileTransform}
+import de.kp.works.beats.fiware.{FiwareEvent, FiwareTransform}
 import de.kp.works.beats.mqtt.MqttPublisher
 import de.kp.works.beats.thingsboard.{MqttEvent, ThingsTransform}
 
@@ -46,6 +47,10 @@ class OutputHandler {
    * [FileTransform] supports Fleet & Zeek Beats
    */
   private var fileTransform:Option[FileTransform] = None
+  /*
+   * [FiwareTransform] supports Fiware Beat
+   */
+  private var fiwareTransform:Option[FiwareTransform] = None
   /*
    * [ThingsTransform] supports Things Beat (ThingsBoard)
    */
@@ -90,6 +95,10 @@ class OutputHandler {
 
   def setFileTransform(transform:FileTransform):Unit = {
     fileTransform = Some(transform)
+  }
+
+  def setFiwareTransform(transform:FiwareTransform):Unit = {
+    fiwareTransform = Some(transform)
   }
 
   def setThingsTransform(transform:ThingsTransform):Unit = {
@@ -147,7 +156,46 @@ class OutputHandler {
     }
 
   }
+  /**
+   * This method defines the Fiware Beat specific
+   * output handling
+   */
+  def sendFiwareEvent(fiwareEvent: FiwareEvent):Unit = {
+    /*
+     * Transform the received event into a serialized
+     * [JsonObject]
+     */
+    if (fiwareTransform.isEmpty)
+      throw new Exception(s"[OutputHandler] No transformer configured to transform a [FiwareEvent].")
 
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [FiwareEvent].")
+
+    val jsonObject = fiwareTransform.get.transform(fiwareEvent, namespace.get)
+    /*
+     * Check which output channel is configured
+     */
+    if (channel.isEmpty)
+      throw new Exception(s"[OutputHandler] No output channel configured.")
+
+    channel.get match {
+      case "mqtt" =>
+        throw new Exception("not implemented yet.")
+
+      case "sse" =>
+        if (queue.isDefined && jsonObject.isDefined)
+          queue.get.offer(jsonObject.get.toString)
+
+      case _ =>
+        println(jsonObject)
+
+    }
+
+  }
+  /**
+   * This method defines the Things Beat specific
+   * output handling
+   */
   def sendThingsEvent(mqttEvent: MqttEvent):Unit = {
     /*
      * Transform the received event into a serialized

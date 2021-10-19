@@ -18,10 +18,7 @@ package de.kp.works.beats.thingsboard
  *
  */
 
-import akka.NotUsed
-import akka.http.scaladsl.model.sse.ServerSentEvent
-import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import akka.stream.scaladsl.SourceQueueWithComplete
 import com.typesafe.config.Config
 import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
@@ -45,6 +42,20 @@ class ThingsService extends BeatsService(BeatsConf.THINGS_CONF) {
     val sslOptions = SslOptions.getSslOptions(securityCfg)
 
     val numThreads = mqttCfg.getInt("numThreads")
+    val outputHandler:OutputHandler = buildOutputHandler(queue)
+
+    val receiver = new ThingsReceiver(
+      brokerUrl,
+      mqttCreds,
+      Some(sslOptions),
+      outputHandler,
+      numThreads)
+
+    receiver.start()
+
+  }
+
+  private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
 
     val outputHandler:OutputHandler = new OutputHandler
     outputHandler.setNamespace(BeatsConf.THINGS_NAME)
@@ -74,14 +85,7 @@ class ThingsService extends BeatsService(BeatsConf.THINGS_CONF) {
         throw new Exception(s"The configured output channel `$channel` is not supported.")
     }
 
-    val receiver = new ThingsReceiver(
-      brokerUrl,
-      mqttCreds,
-      Some(sslOptions),
-      outputHandler,
-      numThreads)
-
-    receiver.start()
+    outputHandler
 
   }
 
