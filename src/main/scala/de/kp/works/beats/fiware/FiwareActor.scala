@@ -102,7 +102,7 @@ abstract class BaseActor extends Actor with ActorLogging {
    * request and to transform into an internal JSON format for
    * further processing.
    */
-  def toFiwareNotification(request:HttpRequest):FiwareNotification = {
+  def toFiwareEvent(request:HttpRequest):FiwareEvent = {
 
     /** HEADERS **/
 
@@ -126,7 +126,7 @@ abstract class BaseActor extends Actor with ActorLogging {
 
     /* We expect that the Orion Context Broker sends a JSON object */
     val payload = JsonParser.parseString(body).getAsJsonObject
-    FiwareNotification(service, servicePath, payload)
+    FiwareEvent(service, servicePath, payload)
 
   }
 
@@ -141,6 +141,8 @@ abstract class BaseActor extends Actor with ActorLogging {
 class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
   import FiwareActor._
+
+  private val namespace = BeatsConf.FIWARE_CONF
 
   override def receive: Receive = {
 
@@ -164,13 +166,13 @@ class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
      * Convert Http request from Orion Broker
      * into internal notification format
      */
-    val notification = toFiwareNotification(request)
+    val fiwareEvent = toFiwareEvent(request)
     /*
      * Before we continue to delegate the notification
      * to the Ignite streamer, we check whether the
      * notification refers to a registered subscription.
      */
-    val json = notification.payload
+    val json = fiwareEvent.payload
     /*
      * {
         "data": [
@@ -193,7 +195,13 @@ class FiwareActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
        * Send JSON representation of the Fiware
        * notification to the provided SSE queue
        */
-      queue.offer(notification.toJson.toString)
+      val eventType = s"beat/$namespace/notification"
+
+      val sseEvent = new JsonObject
+      sseEvent.addProperty("type", eventType)
+      sseEvent.addProperty("event", fiwareEvent.toJson.toString)
+
+      queue.offer(sseEvent.toString)
     }
 
   }

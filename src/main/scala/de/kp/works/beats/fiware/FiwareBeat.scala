@@ -29,7 +29,7 @@ import de.kp.works.beats.BaseBeat
  * An SSE client like [Works. Stream] listens to the published
  * events and initiates subsequent data processing.
  */
-object FiwareBeats extends BaseBeat {
+object FiwareBeat extends BaseBeat {
 
   override var programName:String = "FiwareBeat"
   override var programDesc:String = "Publish Fiware notifications as SSE."

@@ -31,7 +31,7 @@ object BeatsConf {
   private var cfg: Option[Config] = None
 
   val FIWARE_CONF  = "fiware"
-  val FIWARE_NAME  = "Fiware"
+  val FIWARE_NAME  = "fiware"
 
   val FLEET_CONF  = "fleet"
   val FLEET_NAME  = "fleet"
