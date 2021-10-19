@@ -21,6 +21,7 @@ package de.kp.works.beats.osquery.tls.actor
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
+import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.osquery.tls.actor.StatusActor._
 import de.kp.works.beats.osquery.tls.redis.OsqueryNode
 
@@ -33,6 +34,7 @@ import scala.collection.JavaConversions._
 class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
   import de.kp.works.beats.osquery.tls.OsqueryConstants._
+  private val namespace = BeatsConf.OSQUERY_CONF
 
   override def receive: Receive = {
 
@@ -56,8 +58,14 @@ class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
          * StatusActor -- [Publish] --> RedisProducer
          *
          */
-        val events = buildEvents(request)
-        queue.offer(events.toString)
+        val eventType = s"beat/$namespace/status"
+        val eventData = buildEvents(request)
+
+        val sseEvent = new JsonObject
+        sseEvent.addProperty("type", eventType)
+        sseEvent.addProperty("event", eventData.toString)
+
+        queue.offer(sseEvent.toString)
 
       } catch {
         case t:Throwable => origin ! StatusRsp("Status logging failed: " + t.getLocalizedMessage, success = false)

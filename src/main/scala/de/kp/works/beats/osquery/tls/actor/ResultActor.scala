@@ -20,6 +20,7 @@ package de.kp.works.beats.osquery.tls.actor
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
+import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.osquery.tls.OsqueryTransform
 import de.kp.works.beats.osquery.tls.actor.ResultActor._
 import de.kp.works.beats.osquery.tls.redis.OsqueryNode
@@ -108,6 +109,8 @@ import de.kp.works.beats.osquery.tls.redis.OsqueryNode
 
 class ResultActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
 
+  private val namespace = BeatsConf.OSQUERY_CONF
+
   override def receive: Receive = {
 
     case request:ResultReq =>
@@ -127,8 +130,14 @@ class ResultActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
         val node = request.node
         val data = request.data
 
-        val events = OsqueryTransform.transform(node, data)
-        queue.offer(events.toString)
+        val eventType = s"beat/$namespace/result"
+        val eventData = OsqueryTransform.transform(node, data)
+
+        val sseEvent = new JsonObject
+        sseEvent.addProperty("type", eventType)
+        sseEvent.addProperty("event", eventData.toString)
+
+        queue.offer(sseEvent.toString)
 
       } catch {
         case t:Throwable => origin ! ResultRsp("Result logging failed: " + t.getLocalizedMessage, success = false)

@@ -151,15 +151,6 @@ object OsqueryTransform {
     events
 
   }
-
-  /*
-         * This method transforms normalized `event`, `batch` (diffResults)
-         * and `snapshot` logs into a common field format
-         *
-         * @node: node key
-         * @host: host identifier
-         *
-         */
   private def buildField(node: String, host: String, timestamp: Long, name: String, action: String, columns: JsonObject): JsonObject = {
 
     val field = new JsonObject
@@ -181,7 +172,7 @@ object OsqueryTransform {
 
   }
 
-  private def transformCalTime(s: String): java.util.Date = {
+  private def transformCalTime(s: String): java.sql.Date = {
 
     try {
 
@@ -196,7 +187,8 @@ object OsqueryTransform {
       val format = new SimpleDateFormat(pattern, java.util.Locale.US)
       format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
 
-      format.parse(s)
+      val date = format.parse(s)
+      new java.sql.Date(date.getTime)
 
     } catch {
       case _: Throwable => null
