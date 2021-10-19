@@ -19,11 +19,12 @@ package de.kp.works.beats.osquery.fleet
  */
 
 import de.kp.works.beats.file.FileMonitor
-import java.util.concurrent.Executors
+
+import java.util.concurrent.{ExecutorService, Executors}
 
 class FleetReceiver(monitor:FileMonitor, numThreads:Int = 1) {
 
-  private val executorService = Executors.newFixedThreadPool(numThreads)
+  private var executorService:ExecutorService = _
 
   def start():Unit = {
     /*
@@ -44,6 +45,7 @@ class FleetReceiver(monitor:FileMonitor, numThreads:Int = 1) {
     try {
 
       /* Initiate stream execution */
+      executorService = Executors.newFixedThreadPool(numThreads)
       executorService.execute(worker)
 
     } catch {

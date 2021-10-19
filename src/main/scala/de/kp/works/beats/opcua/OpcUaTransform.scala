@@ -111,7 +111,7 @@ object OpcUaTransform {
       OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.NodeId, systemName = systemName)
 
     } catch {
-      case t:Throwable => null
+      case _:Throwable => null
     }
 
   }
@@ -140,7 +140,7 @@ object OpcUaTransform {
       OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.NodeId, systemName = systemName)
 
     } catch {
-      case t:Throwable => null
+      case _:Throwable => null
     }
 
   }

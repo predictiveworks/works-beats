@@ -21,7 +21,7 @@ package de.kp.works.beats.thingsboard
 import akka.stream.scaladsl.SourceQueueWithComplete
 import de.kp.works.beats.ssl.SslOptions
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
 class ThingsReceiver(
     brokerUrl:String,
@@ -35,7 +35,7 @@ class ThingsReceiver(
     /* The number of threads to use for processing */
     numThreads:Int = 1) {
 
-  private val executorService = Executors.newFixedThreadPool(numThreads)
+  private var executorService:ExecutorService = _
 
   def start():Unit = {
     /*
@@ -65,10 +65,11 @@ class ThingsReceiver(
     try {
 
       /* Initiate stream execution */
+      executorService = Executors.newFixedThreadPool(numThreads)
       executorService.execute(worker)
 
     } catch {
-      case e:Exception => executorService.shutdown()
+      case _:Exception => executorService.shutdown()
     }
 
   }

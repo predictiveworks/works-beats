@@ -3,7 +3,7 @@ package de.kp.works.beats.opencti
 import akka.stream.scaladsl.SourceQueueWithComplete
 import de.kp.works.beats.ssl.SslOptions
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
 /**
  * OpenCTI is currently using REDIS Stream as its technical layer.
@@ -45,7 +45,7 @@ class CTIReceiver(
    /* The number of threads to use for processing */
    numThreads:Int = 1) {
 
-  private val executorService = Executors.newFixedThreadPool(numThreads)
+  private var executorService:ExecutorService = _
 
   def start():Unit = {
     /*
@@ -75,6 +75,7 @@ class CTIReceiver(
     try {
 
       /* Initiate stream execution */
+      executorService = Executors.newFixedThreadPool(numThreads)
       executorService.execute(worker)
 
     } catch {

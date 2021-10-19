@@ -1,4 +1,4 @@
-package de.kp.works.beats.opcua;
+package de.kp.works.beats.opcua
 /*
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -18,8 +18,10 @@ package de.kp.works.beats.opcua;
  *
  */
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonObject
 
-public interface OpcUaCallback {
-    void onMessage(JsonObject message);
+trait OpcUaCallback {
+
+  def onMessage(message:Option[JsonObject]):Unit
+
 }

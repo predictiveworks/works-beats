@@ -281,11 +281,12 @@ class OpcUaSubscriber(
        * This mechanism defines the bridge to subsequent
        * data computation
        */
-      callback.onMessage(opcUaMessage)
+      callback.onMessage(Some(opcUaMessage))
 
     } catch {
-      case e: Exception =>
-        e.printStackTrace()
+      case _: Exception =>
+        callback.onMessage(None)
+
     }
   }
 

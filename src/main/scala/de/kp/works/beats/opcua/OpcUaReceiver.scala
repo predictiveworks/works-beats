@@ -20,9 +20,9 @@ package de.kp.works.beats.opcua
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson.JsonObject
-import org.slf4j.LoggerFactory
+import de.kp.works.beats.BeatsConf
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
 class OpcUaReceiver(
    /*
@@ -33,11 +33,10 @@ class OpcUaReceiver(
    /* The number of threads to use for processing */
    numThreads:Int = 1) {
 
-  private val LOGGER = LoggerFactory.getLogger(classOf[OpcUaReceiver])
-
   private val opcUaConnector = new OpcUaConnector()
+  private var executorService:ExecutorService = _
 
-  private val executorService = Executors.newFixedThreadPool(numThreads)
+  private val namespace = BeatsConf.OPCUA_CONF
 
   def start():Unit = {
     /*
@@ -46,18 +45,20 @@ class OpcUaReceiver(
     val worker: Runnable = new Runnable {
 
       val subscriptionCallback: OpcUaCallback = new OpcUaCallback {
-        override def onMessage(message: JsonObject): Unit = {
+        override def onMessage(message: Option[JsonObject]): Unit = {
 
-          val serialized = message.toString
-          if (queue.isDefined)
-            queue.get.offer(serialized)
-
-          else {
+          if (queue.isDefined && message.isDefined) {
             /*
-             * An undefined queue can be useful for testing
-             * and publishes received events to the console
+             * Build unified SSE event format that is harmonized
+             * with all other Beat event output formats
              */
-            println(serialized)
+            val eventType = s"beat/$namespace"
+
+            val sseEvent = new JsonObject
+            sseEvent.addProperty("type", eventType)
+            sseEvent.addProperty("event", message.get.toString)
+
+            queue.get.offer(sseEvent.toString)
           }
         }
       }
@@ -81,6 +82,7 @@ class OpcUaReceiver(
     try {
 
       /* Initiate stream execution */
+      executorService = Executors.newFixedThreadPool(numThreads)
       executorService.execute(worker)
 
     } catch {
