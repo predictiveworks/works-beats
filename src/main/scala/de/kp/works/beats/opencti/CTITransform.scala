@@ -18,6 +18,7 @@ package de.kp.works.beats.opencti
  *
  */
 
+import com.google.gson.JsonObject
 import de.kp.works.beats.BeatsTransform
 import de.kp.works.beats.opencti.transform._
 
@@ -67,7 +68,7 @@ object CTITransform extends BeatsTransform {
   },
    *
    */
-  def transform(sseEvent:SseEvent):Option[String] = {
+  def transform(sseEvent:SseEvent):Option[JsonObject] = {
     /*
      * This transform method supports the STIX data format version 0.2,
      * starting with version v4.5.1 of OpenCTI.
@@ -152,7 +153,7 @@ object CTITransform extends BeatsTransform {
       }
 
     } catch {
-      case t:Throwable => Some(mapper.writeValueAsString(sseEvent))
+      case _:Throwable => None
     }
 
   }

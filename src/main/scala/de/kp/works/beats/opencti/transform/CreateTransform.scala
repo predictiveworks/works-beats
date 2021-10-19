@@ -35,7 +35,7 @@ object CreateTransform extends BeatsTransform {
    *    }
    *
    */
-  def transform(payload:Map[String,Any]):Option[String] = {
+  def transform(payload:Map[String,Any]):Option[JsonObject] = {
 
     val entityId = payload.getOrElse("id", "").asInstanceOf[String]
     /*
@@ -200,7 +200,7 @@ object CreateTransform extends BeatsTransform {
 
     // TODO Check whether `hashes` is covered by fillEntity
     fillEntity(payload, keys, entityJson)
-    Some(entityJson.toString)
+    Some(entityJson)
 
   }
 

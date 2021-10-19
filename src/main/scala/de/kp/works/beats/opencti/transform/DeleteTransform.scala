@@ -22,7 +22,7 @@ import com.google.gson.JsonObject
 import de.kp.works.beats.BeatsTransform
 
 object DeleteTransform extends BeatsTransform {
-  def transform(payload:Map[String,Any]):Option[String] = {
+  def transform(payload:Map[String,Any]):Option[JsonObject] = {
 
     val entityId = payload.getOrElse("id", "").asInstanceOf[String]
     val entityType = payload.getOrElse("type", "").asInstanceOf[String]
@@ -51,7 +51,7 @@ object DeleteTransform extends BeatsTransform {
     val keys = payload.keySet.filter(key => !filter.contains(key))
 
     fillEntity(payload, keys, entityJson)
-    Some(entityJson.toString)
+    Some(entityJson)
 
   }
 

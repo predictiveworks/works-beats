@@ -35,7 +35,7 @@ object UpdateTransform extends BeatsTransform {
    *   }
    *
    */
-  def transform(payload:Map[String,Any]):Option[String] = {
+  def transform(payload:Map[String,Any]):Option[JsonObject] = {
     /*
      * Extract patch information, determine patch operation
      * and extract the associated attributes and values
@@ -179,7 +179,7 @@ object UpdateTransform extends BeatsTransform {
     val keys = payload.keySet.filter(key => !filter.contains(key))
 
     fillEntity(payload, keys, entityJson)
-    Some(entityJson.toString)
+    Some(entityJson)
 
   }
 }

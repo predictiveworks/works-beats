@@ -19,37 +19,45 @@ package de.kp.works.beats.opencti
  */
 
 import akka.stream.scaladsl.SourceQueueWithComplete
+import com.google.gson.JsonObject
+import de.kp.works.beats.BeatsConf
 
-class CTIHandler(
-    /*
-     * The queue is the output queue of the Akka based SSE mechanism
-     */
-    queue:Option[SourceQueueWithComplete[String]]) {
+class CTIHandler(queue:Option[SourceQueueWithComplete[String]]) {
 
-    def write(sseEvent:SseEvent):Unit = {
+  private val namespace = BeatsConf.OPENCTI_CONF
+
+    def write(ctiEvent:SseEvent):Unit = {
       /*
        * Guard to filter irrelevant messages
        */
-      if (sseEvent.eventId == null || sseEvent.eventType == null || sseEvent.data == null) return
-      if (sseEvent.eventId.isEmpty || sseEvent.eventType.isEmpty || sseEvent.data.isEmpty) return
+      if (ctiEvent.eventId == null || ctiEvent.eventType == null || ctiEvent.data == null) return
+      if (ctiEvent.eventId.isEmpty || ctiEvent.eventType.isEmpty || ctiEvent.data.isEmpty) return
       /*
        * Transform the received event and republish
        * as serialized [JsonObject]
        */
-      val serialized = CTITransform.transform(sseEvent)
+      val jsonObject = CTITransform.transform(ctiEvent)
       /*
        * In case of event types that that are not
        * republished, [CTITransform] returns None
        */
-      if (queue.isDefined && serialized.isDefined)
-        queue.get.offer(serialized.get)
-
-      else {
+      if (queue.isDefined && jsonObject.isDefined) {
         /*
-         * An undefined queue can be useful for testing
-         * and publishes received events to the console
+         * Build unified SSE event format that is
+         * harmonized with all other Beat event output
+         * formats.
+         *
+         * OpenCTI distinguishes `create`, `delete`,
+         * `update` etc events
          */
-        println(serialized)
+        val eventType = s"beat/$namespace/${ctiEvent.eventType}"
+
+        val sseEvent = new JsonObject
+        sseEvent.addProperty("type", eventType)
+        sseEvent.addProperty("event", jsonObject.get.toString)
+
+        queue.get.offer(sseEvent.toString)
+
       }
 
     }
