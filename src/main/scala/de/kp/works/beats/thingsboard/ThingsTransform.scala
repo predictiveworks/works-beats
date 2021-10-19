@@ -27,11 +27,11 @@ object ThingsTransform extends BeatsTransform {
    *
    * Message: {"device": "Device A", "data": {"attribute1": "value1", "attribute2": 42}}
    */
-  def transform(event:MqttEvent):Option[String] = {
+  def transform(mqttEvent:MqttEvent, namespace:String):Option[JsonObject] = {
 
     try {
 
-      val message = mapper.readValue(event.json, classOf[Map[String, Any]])
+      val message = mapper.readValue(mqttEvent.json, classOf[Map[String, Any]])
       val device = message("device").asInstanceOf[String]
 
       val data = message("data").asInstanceOf[Map[String, Any]]
@@ -56,12 +56,21 @@ object ThingsTransform extends BeatsTransform {
        * define the `type` of the respective device.
        */
       entityJson.addProperty("type", "device")
-
       fillEntity(data, data.keySet, entityJson)
-      Some(entityJson.toString)
+      /*
+       * For compliance with other Works Beats, the SSE
+       * is transformed into a unified format
+       */
+      val eventType = s"beat/$namespace/device"
+
+      val sseEvent = new JsonObject
+      sseEvent.addProperty("type", eventType)
+      sseEvent.addProperty("event", entityJson.toString)
+
+      Some(sseEvent)
 
     } catch {
-      case _:Throwable => Some(mapper.writeValueAsString(event))
+      case _:Throwable => None
     }
   }
 

@@ -31,17 +31,17 @@ import de.kp.works.beats.file.{FileEvent, FileTransform}
  */
 class ZeekTransform extends FileTransform {
 
-  override def transform(event:FileEvent, namespace:String):JsonObject = {
+  override def transform(fileEvent:FileEvent, namespace:String):JsonObject = {
 
     val json = new JsonObject
     /*
      * In case of a [FileEvent], the `eventType` specifies
      * the file name. It is enriched with the namespace,
      *
-     * e.g `zeek/dns.log`.
+     * e.g `beat/zeek/dns.log`.
      */
-    json.addProperty("type", s"beat/$namespace/${event.eventType}")
-    json.addProperty("event", event.eventData)
+    json.addProperty("type", s"beat/$namespace/${fileEvent.eventType}")
+    json.addProperty("event", fileEvent.eventData)
 
     json
 

@@ -43,7 +43,7 @@ object BeatsConf {
   val OPENCTI_NAME = "OpenCTI"
 
   val THINGSBOARD_CONF = "thingsboard"
-  val THINGSBOARD_NAME = "ThingsBoard"
+  val THINGSBOARD_NAME = "things"
 
   val OSQUERY_CONF = "osquery"
   val OSQUERY_NAME = "Osquery"

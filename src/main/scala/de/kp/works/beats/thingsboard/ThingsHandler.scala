@@ -19,6 +19,7 @@ package de.kp.works.beats.thingsboard
  */
 
 import akka.stream.scaladsl.SourceQueueWithComplete
+import de.kp.works.beats.BeatsConf
 
 class ThingsHandler(
    /*
@@ -26,22 +27,18 @@ class ThingsHandler(
     */
    queue:Option[SourceQueueWithComplete[String]]) {
 
-  def write(event:MqttEvent):Unit = { {
+  def write(mqttEvent:MqttEvent):Unit = {
+
+    val namespace = BeatsConf.THINGSBOARD_NAME
     /*
      * Transform the received event and republish
      * as serialized [JsonObject]
      */
-    val serialized = ThingsTransform.transform(event)
-    if (queue.isDefined && serialized.isDefined)
-      queue.get.offer(serialized.get)
+    val jsonObject = ThingsTransform.transform(mqttEvent, namespace)
 
-    else {
-      /*
-       * An undefined queue can be useful for testing
-       * and publishes received events to the console
-       */
-      println(serialized)
-    }
-  }}
+    if (queue.isDefined && jsonObject.isDefined)
+      queue.get.offer(jsonObject.get.toString)
+
+  }
 
 }
