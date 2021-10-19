@@ -28,7 +28,22 @@ trait BeatsTransform {
 
   protected val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
-
+  /**
+   * Sample processing from ThingsBoard
+   *
+   * Subscribing to topic v1/gateway/attributes results
+   * in messages of the format:
+   *
+   * {
+   *   "device": "Device A",
+   *   "data": {
+   *     "attribute1": "value1",
+   *     "attribute2": 42
+   *   }
+   * }
+   *
+   * In this case, the `payload` parameter refers to `data`
+   */
   protected def fillEntity(payload:Map[String, Any], keys:Set[String], entityJson:JsonObject):Unit = {
     keys.foreach(key => {
       /*
@@ -36,20 +51,31 @@ trait BeatsTransform {
        */
       val value = payload(key)
       value match {
+        /*
+         * The `value` refers to a LIST attribute: the current
+         * implementation supports component (or element) data
+         * types that are either `primitive` or specify a map-
+         */
         case _: List[Any] =>
           val list = value.asInstanceOf[List[Any]]
-          /*
-           * We support [List] values with [Basic]
-           * and [Map] data types
-           */
           if (list.nonEmpty) {
 
             val attrJson = new JsonObject
+            /*
+             * The attribute `metadata` field is introduced to
+             * be compliant with the NGSI v2 specification, but
+             * filled with an empty object
+             */
             attrJson.add("metadata", new JsonObject)
-
+            /*
+             * Infer component data type from first element of
+             * the list attribute value
+             */
             val head = list.head
             if (head.isInstanceOf[Map[_, _]]) {
-
+              /*
+               * The attribute value is a list of objects
+               */
               val valueJson = new JsonArray
               list.foreach(entry => {
 
@@ -98,7 +124,15 @@ trait BeatsTransform {
               putValues(list, basicType, attrJson)
 
             }
-
+            /*
+             * The contribution to the provided entity (entityJson):
+             *
+             * attribute = {
+             *    "metadata" : {},
+             *    "type": ...,
+             *    "value": ...
+             * }
+             */
             entityJson.add(key, attrJson)
 
           }

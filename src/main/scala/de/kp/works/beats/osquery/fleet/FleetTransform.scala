@@ -18,7 +18,7 @@ package de.kp.works.beats.osquery.fleet
  *
  */
 
-import com.google.gson.{JsonObject, JsonParser}
+import com.google.gson.{JsonArray, JsonObject, JsonParser}
 import de.kp.works.beats.file.{FileEvent, FileTransform}
 import de.kp.works.beats.osquery.fleet.FleetFormats.{RESULT, STATUS}
 
@@ -77,6 +77,17 @@ class FleetTransform extends FileTransform {
 
   /** HELPER METHODS **/
 
+  /**
+   * This method harmonizes the 3 different result log formats
+   * into a common output format:
+   *
+   * - name:         String
+   * - calendarTime: java.sql.Date
+   * - timestamp:    Long
+   * - hostname:     String
+   * - format:       String (event)
+   * - <action>:     JsonArray ((List of) columns)
+   */
   private def transformLog(oldObject:JsonObject):(String, String) = {
 
     val newObject = new JsonObject
@@ -139,12 +150,27 @@ class FleetTransform extends FileTransform {
        * (distributed) queries.
        */
       newObject.addProperty("format", "event")
-
+      /*
+       * Normalization of action & columns fields to be
+       * in sync with batch and snapshot events
+       */
       val action = oldObject.get("action").getAsString
-      newObject.addProperty("action", action)
-
       val columns = oldObject.get("columns").getAsJsonObject
-      newObject.add("columns", columns)
+
+      val batch = new JsonArray
+      batch.add(columns)
+
+      newObject.add(action, batch)
+      /*
+       * Output format:
+       *
+       * - name:         String
+       * - calendarTime: java.sql.Date
+       * - timestamp:    Long
+       * - hostname:     String
+       * - format:       String (event)
+       * - <action>:     JsonArray (columns)
+       */
 
       (name, newObject.toString)
 
@@ -193,7 +219,16 @@ class FleetTransform extends FileTransform {
         newObject.add(action, data)
 
       })
-
+      /*
+       * Output format:
+       *
+       * - name:         String
+       * - calendarTime: java.sql.Date
+       * - timestamp:    Long
+       * - hostname:     String
+       * - format:       String (batch)
+       * - <action>:     JsonArray (List of columns)
+       */
       (name, newObject.toString)
 
     }
@@ -274,8 +309,12 @@ class FleetTransform extends FileTransform {
     }
 
   }
-
-  private def transformCalTime(s: String): java.util.Date = {
+  /*
+   * Method to transform Osquery's calendarTime into
+   * java.sql.Date as this is compliant with Apache
+   * Spark data types
+   */
+  private def transformCalTime(s: String): java.sql.Date = {
 
     try {
 
@@ -289,7 +328,8 @@ class FleetTransform extends FileTransform {
       val format = new SimpleDateFormat(pattern, java.util.Locale.US)
       format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
 
-      format.parse(s)
+      val date = format.parse(s)
+      new java.sql.Date(date.getTime)
 
     } catch {
       case _: Throwable => null

@@ -35,7 +35,20 @@ object ThingsTransform extends BeatsTransform {
       val device = message("device").asInstanceOf[String]
 
       val data = message("data").asInstanceOf[Map[String, Any]]
-
+      /*
+       * The payload of the [MqttEvent] is transformed into
+       * an NGSI v2 compliant JSON object:
+       *
+       * {
+       *   "id": ...
+       *   "type": "device",
+       *   "attribute1": {
+       *     "metadata": {},
+       *     "type": inferred data type
+       *     "value": ...
+       *   }
+       * }
+       */
       val entityJson = new JsonObject
       entityJson.addProperty("id", device)
       /*
@@ -48,7 +61,7 @@ object ThingsTransform extends BeatsTransform {
       Some(entityJson.toString)
 
     } catch {
-      case t:Throwable => Some(mapper.writeValueAsString(event))
+      case _:Throwable => Some(mapper.writeValueAsString(event))
     }
   }
 
