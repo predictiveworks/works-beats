@@ -18,7 +18,7 @@ package de.kp.works.beats.thingsboard
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 
 import java.util.concurrent.{ExecutorService, Executors}
@@ -27,11 +27,7 @@ class ThingsReceiver(
     brokerUrl:String,
     mqttCreds: MqttCreds,
     sslOptions: Option[SslOptions] = None,
-    /*
-     * The SSE output queue to publish the
-     * incoming OpenCTI events
-     */
-    queue:Option[SourceQueueWithComplete[String]] = None,
+    outputHandler:OutputHandler,
     /* The number of threads to use for processing */
     numThreads:Int = 1) {
 
@@ -42,10 +38,6 @@ class ThingsReceiver(
      * Wrap connector and output handler in a runnable
      */
     val worker = new Runnable {
-      /*
-       * Initialize the output handler
-       */
-      private val outputHandler = new ThingsHandler(queue)
       /*
        * Initialize the connector to the
        * OpenCTI server

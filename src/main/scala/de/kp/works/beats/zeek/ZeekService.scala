@@ -54,16 +54,16 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
      * The current implementation of [ZeekBeat] supports
      * `mqtt` and `sse` as output channel
      */
-    val eventHandler:OutputHandler = new OutputHandler
-    eventHandler.setNamespace(BeatsConf.ZEEK_NAME)
+    val outputHandler:OutputHandler = new OutputHandler
+    outputHandler.setNamespace(BeatsConf.ZEEK_NAME)
 
     val channel = getOutputCfg.getString("channel")
-    eventHandler.setChannel(channel)
+    outputHandler.setChannel(channel)
     /*
      * Configure the [OutputHandler] to transform incoming
      * [FileEvent]s prior to publishing with [ZeekTransform]
      */
-    eventHandler.setFileTransform(new ZeekTransform)
+    outputHandler.setFileTransform(new ZeekTransform)
 
     channel match {
       case "mqtt" =>
@@ -76,7 +76,7 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
          * Configure the [OutputHandler] to write incoming
          * [FileEvent]s to the SSE output queue
          */
-        eventHandler.setSseQueue(queue)
+        outputHandler.setSseQueue(queue)
 
       case _ =>
         throw new Exception(s"The configured output channel `$channel` is not supported.")
@@ -85,7 +85,7 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
     /*
      * File Monitor to listen to log file changes on a Zeek platform
      */
-    val monitor = new FileMonitor(BeatsConf.ZEEK_CONF, zeekFolder, eventHandler)
+    val monitor = new FileMonitor(BeatsConf.ZEEK_CONF, zeekFolder, outputHandler)
 
     val receiver = new ZeekReceiver(monitor, numThreads)
     receiver.start()

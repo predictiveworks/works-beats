@@ -21,7 +21,7 @@ package de.kp.works.beats.thingsboard
 import com.google.gson.JsonObject
 import de.kp.works.beats.BeatsTransform
 
-object ThingsTransform extends BeatsTransform {
+class ThingsTransform extends BeatsTransform {
   /*
    * Subscribing to topic v1/gateway/attributes results in messages of the format:
    *

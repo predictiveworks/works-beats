@@ -18,6 +18,7 @@ package de.kp.works.beats.thingsboard
  *
  */
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
 import org.eclipse.paho.client.mqttv3
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
@@ -53,7 +54,7 @@ import java.nio.charset.Charset
  */
 class MqttConnector(
   brokerUrl:String,
-  handler:ThingsHandler,
+  outputHandler:OutputHandler,
   mqttCreds: MqttCreds,
   sslOptions: Option[SslOptions] = None) {
 
@@ -121,8 +122,8 @@ class MqttConnector(
           /* Serialize plain byte message */
           val json = new String(payload, UTF8)
 
-          val result = new MqttEvent(timestamp, seconds, topic, qos, duplicate, retained, json)
-          handler.write(result)
+          val mqttEvent = new MqttEvent(timestamp, seconds, topic, qos, duplicate, retained, json)
+          outputHandler.sendThingsEvent(mqttEvent)
 
         }
 

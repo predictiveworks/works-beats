@@ -21,6 +21,7 @@ package de.kp.works.beats.handler
 import akka.stream.scaladsl.SourceQueueWithComplete
 import de.kp.works.beats.file.{FileEvent, FileTransform}
 import de.kp.works.beats.mqtt.MqttPublisher
+import de.kp.works.beats.thingsboard.{MqttEvent, ThingsTransform}
 
 class OutputHandler {
 
@@ -41,8 +42,14 @@ class OutputHandler {
    * channel.
    */
   private var queue:Option[SourceQueueWithComplete[String]] = None
-
+  /*
+   * [FileTransform] supports Fleet & Zeek Beats
+   */
   private var fileTransform:Option[FileTransform] = None
+  /*
+   * [ThingsTransform] supports Things Beat (ThingsBoard)
+   */
+  private var thingsTransform:Option[ThingsTransform] = None
 
   def getChannel:String = channel.get
 
@@ -84,6 +91,12 @@ class OutputHandler {
   def setFileTransform(transform:FileTransform):Unit = {
     fileTransform = Some(transform)
   }
+
+  def setThingsTransform(transform:ThingsTransform):Unit = {
+    thingsTransform = Some(transform)
+  }
+
+  /** OUTPUT SUPPORT **/
 
   def sendFileEvent(event:FileEvent):Unit = {
     /*
@@ -127,6 +140,39 @@ class OutputHandler {
            */
           println(jsonObject)
         }
+
+      case _ =>
+        println(jsonObject)
+
+    }
+
+  }
+
+  def sendThingsEvent(mqttEvent: MqttEvent):Unit = {
+    /*
+     * Transform the received event into a serialized
+     * [JsonObject]
+     */
+    if (thingsTransform.isEmpty)
+      throw new Exception(s"[OutputHandler] No transformer configured to transform a [MqttEvent].")
+
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [MqttEvent].")
+
+    val jsonObject = thingsTransform.get.transform(mqttEvent, namespace.get)
+    /*
+     * Check which output channel is configured
+     */
+    if (channel.isEmpty)
+      throw new Exception(s"[OutputHandler] No output channel configured.")
+
+    channel.get match {
+      case "mqtt" =>
+        throw new Exception("not implemented yet.")
+
+      case "sse" =>
+        if (queue.isDefined && jsonObject.isDefined)
+          queue.get.offer(jsonObject.get.toString)
 
       case _ =>
         println(jsonObject)
