@@ -18,10 +18,7 @@ package de.kp.works.beats.opcua
  *
  */
 
-import akka.NotUsed
-import akka.http.scaladsl.model.sse.ServerSentEvent
-import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import akka.stream.scaladsl.SourceQueueWithComplete
 import com.typesafe.config.Config
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
