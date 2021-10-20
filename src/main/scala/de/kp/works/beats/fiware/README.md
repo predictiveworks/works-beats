@@ -5,10 +5,6 @@
 Context Broker, receives notifications that match custom subscriptions, and re-publishes 
 these notifications via SSE.
 
-<p align="center">
-  <img src="https://github.com/predictiveworks/works-beats/blob/main/images/fiware-beat-2021-08-22.png" width="600" alt="Fiware Beat">
-</p>
-
 **FIWARE** brings a curated framework of open source software components to accelerate and
 ease the implementation of smart IoT platforms and solutions.
 

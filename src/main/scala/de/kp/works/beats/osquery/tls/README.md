@@ -8,10 +8,6 @@ is consumed and re-published via SSE.
 This service can also be used to configure and manage a fleet of Osquery nodes. To this end, 
 Osquery Beat is backed by Redis.
 
-<p align="center">
-  <img src="https://github.com/predictiveworks/works-beats/blob/main/images/osquery-beat-2021-09-10.png" width="600" alt="Osquery Beat">
-</p>
-
 **Osquery** is an operating system instrumentation framework that exposes an operating system 
 as a high-performance relational database. This allows to write SQL queries to explore operating 
 system data.
