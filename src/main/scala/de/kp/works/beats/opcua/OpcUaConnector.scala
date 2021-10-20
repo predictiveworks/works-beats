@@ -20,6 +20,7 @@ package de.kp.works.beats.opcua
 
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.config.{OpcUaClientConfig, OpcUaClientConfigBuilder}
@@ -50,7 +51,8 @@ class OpcUaConnector() {
 
   private var opcUaClient:OpcUaClient = _
   private var subscription:UaSubscription = _
-  private var subscriptionCallback:OpcUaCallback = _
+
+  private var outputHandler:OutputHandler = _
 
   private val opcUaCfg: Config = BeatsConf.getBeatCfg(BeatsConf.OPCUA_CONF)
 
@@ -172,7 +174,7 @@ class OpcUaConnector() {
        */
       topics.foreach(topic => OpcUaRegistry.delTopic(topic))
 
-      val subscriber = new OpcUaSubscriber(opcUaClient, subscription, subscriptionCallback)
+      val subscriber = new OpcUaSubscriber(opcUaClient, subscription, outputHandler)
       subscriber.subscribeTopics(topics)
 
     }
@@ -181,8 +183,8 @@ class OpcUaConnector() {
    * This method is used to retrieve data from the
    * UA server and send to output channels
    */
-  def setSubscriptionCallback(callback:OpcUaCallback):OpcUaConnector = {
-    subscriptionCallback = callback
+  def setOutputHandler(handler:OutputHandler):OpcUaConnector = {
+    outputHandler = handler
     this
   }
   /**
@@ -205,7 +207,7 @@ class OpcUaConnector() {
           val topic = OpcUaTransform.parse(uri + "/" + pattern)
           if (topic.isValid) {
 
-            val subscriber = new OpcUaSubscriber(opcUaClient, subscription, subscriptionCallback)
+            val subscriber = new OpcUaSubscriber(opcUaClient, subscription, outputHandler)
             try {
               future.complete(subscriber.subscribeTopic(id, topic).get())
 

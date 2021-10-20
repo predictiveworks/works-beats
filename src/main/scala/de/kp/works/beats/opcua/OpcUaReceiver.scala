@@ -18,56 +18,28 @@ package de.kp.works.beats.opcua
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
-import com.google.gson.JsonObject
-import de.kp.works.beats.BeatsConf
-
+import de.kp.works.beats.handler.OutputHandler
 import java.util.concurrent.{ExecutorService, Executors}
 
 class OpcUaReceiver(
-   /*
-    * The SSE output queue to publish the
-    * incoming OPC-UA events
-    */
-   queue:Option[SourceQueueWithComplete[String]] = None,
+   outputHandler:OutputHandler,
    /* The number of threads to use for processing */
    numThreads:Int = 1) {
 
   private val opcUaConnector = new OpcUaConnector()
   private var executorService:ExecutorService = _
 
-  private val namespace = BeatsConf.OPCUA_CONF
-
   def start():Unit = {
     /*
      * Wrap connector and output handler in a runnable
      */
     val worker: Runnable = new Runnable {
-
-      val subscriptionCallback: OpcUaCallback = new OpcUaCallback {
-        override def onMessage(message: Option[JsonObject]): Unit = {
-
-          if (queue.isDefined && message.isDefined) {
-            /*
-             * Build unified SSE event format that is harmonized
-             * with all other Beat event output formats
-             */
-            val eventType = s"beat/$namespace"
-
-            val sseEvent = new JsonObject
-            sseEvent.addProperty("type", eventType)
-            sseEvent.addProperty("event", message.get.toString)
-
-            queue.get.offer(sseEvent.toString)
-          }
-        }
-      }
       /*
        * Initialize the connector to the
        * OPC-UA server
        */
       val connector = new OpcUaConnector()
-      opcUaConnector.setSubscriptionCallback(subscriptionCallback)
+      opcUaConnector.setOutputHandler(outputHandler)
 
       override def run(): Unit = {
 

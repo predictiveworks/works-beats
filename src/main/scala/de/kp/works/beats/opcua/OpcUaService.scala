@@ -20,6 +20,7 @@ package de.kp.works.beats.opcua
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.typesafe.config.Config
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
@@ -27,10 +28,41 @@ class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
   override def onStart(queue: SourceQueueWithComplete[String], opcUaCfg:Config):Unit = {
 
     val receiverCfg = opcUaCfg.getConfig("receiver")
-    val numThreads = receiverCfg.getInt("numThreads")
 
-    val receiver = new OpcUaReceiver(Some(queue), numThreads)
+    val numThreads = receiverCfg.getInt("numThreads")
+    val outputHandler:OutputHandler = buildOutputHandler(queue)
+
+    val receiver = new OpcUaReceiver(outputHandler, numThreads)
     receiver.start()
+
+  }
+
+  private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
+
+    val outputHandler:OutputHandler = new OutputHandler
+    outputHandler.setNamespace(BeatsConf.OPCUA_NAME)
+
+    val channel = getOutputCfg.getString("channel")
+    outputHandler.setChannel(channel)
+
+    channel match {
+      case "mqtt" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [MqttPublisher] when setting the respective channel
+       */
+      case "sse" =>
+        /*
+         * Configure the [OutputHandler] to write incoming
+         * [OpcUaEvent]s to the SSE output queue
+         */
+        outputHandler.setSseQueue(queue)
+
+      case _ =>
+        throw new Exception(s"The configured output channel `$channel` is not supported.")
+    }
+
+    outputHandler
 
   }
 

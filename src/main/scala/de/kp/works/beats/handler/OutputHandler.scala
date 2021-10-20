@@ -19,6 +19,7 @@ package de.kp.works.beats.handler
  */
 
 import akka.stream.scaladsl.SourceQueueWithComplete
+import com.google.gson.JsonObject
 import de.kp.works.beats.file.{FileEvent, FileTransform}
 import de.kp.works.beats.fiware.{FiwareEvent, FiwareTransform}
 import de.kp.works.beats.mqtt.MqttPublisher
@@ -115,6 +116,7 @@ class OutputHandler {
   }
 
   /** OUTPUT SUPPORT **/
+
   /**
    * This method defines the OpenCTI Beat specific
    * output handling
@@ -131,24 +133,7 @@ class OutputHandler {
       throw new Exception(s"[OutputHandler] No namespace configured to transform a [SseEvent].")
 
     val jsonObject = ctiTransform.get.transform(ctiEvent, namespace.get)
-    /*
-     * Check which output channel is configured
-     */
-    if (channel.isEmpty)
-      throw new Exception(s"[OutputHandler] No output channel configured.")
-
-    channel.get match {
-      case "mqtt" =>
-        throw new Exception("not implemented yet.")
-
-      case "sse" =>
-        if (queue.isDefined && jsonObject.isDefined)
-          queue.get.offer(jsonObject.get.toString)
-
-      case _ =>
-        println(jsonObject)
-
-    }
+    if (jsonObject.isDefined) sendEvent(jsonObject.get)
 
   }
 
@@ -164,6 +149,71 @@ class OutputHandler {
       throw new Exception(s"[OutputHandler] No namespace configured to transform a [FileEvent].")
 
     val jsonObject = fileTransform.get.transform(event, namespace.get)
+    sendEvent(jsonObject)
+
+  }
+  /**
+   * This method defines the Fiware Beat specific
+   * output handling
+   */
+  def sendFiwareEvent(fiwareEvent: FiwareEvent):Unit = {
+    /*
+     * Transform the received event into a serialized
+     * [JsonObject]
+     */
+    if (fiwareTransform.isEmpty)
+      throw new Exception(s"[OutputHandler] No transformer configured to transform a [FiwareEvent].")
+
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [FiwareEvent].")
+
+    val jsonObject = fiwareTransform.get.transform(fiwareEvent, namespace.get)
+    if (jsonObject.isDefined) sendEvent(jsonObject.get)
+
+  }
+
+  def sendOpcUaEvent(opcUaEvent: Option[JsonObject]):Unit = {
+
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [OpcUaEvent].")
+
+    if (opcUaEvent.isDefined) {
+      /*
+       * Build unified SSE event format that is harmonized
+       * with all other Beat event output formats
+       */
+      val eventType = s"beat/$namespace"
+
+      val jsonObject = new JsonObject
+      jsonObject.addProperty("type", eventType)
+      jsonObject.addProperty("event", opcUaEvent.get.toString)
+
+      sendEvent(jsonObject)
+
+    }
+
+  }
+  /**
+   * This method defines the Things Beat specific
+   * output handling
+   */
+  def sendThingsEvent(mqttEvent: MqttEvent):Unit = {
+    /*
+     * Transform the received event into a serialized
+     * [JsonObject]
+     */
+    if (thingsTransform.isEmpty)
+      throw new Exception(s"[OutputHandler] No transformer configured to transform a [MqttEvent].")
+
+    if (namespace.isEmpty)
+      throw new Exception(s"[OutputHandler] No namespace configured to transform a [MqttEvent].")
+
+    val jsonObject = thingsTransform.get.transform(mqttEvent, namespace.get)
+    if (jsonObject.isDefined) sendEvent(jsonObject.get)
+
+  }
+
+  private def sendEvent(jsonObject:JsonObject):Unit = {
     /*
      * Check which output channel is configured
      */
@@ -194,78 +244,6 @@ class OutputHandler {
            */
           println(jsonObject)
         }
-
-      case _ =>
-        println(jsonObject)
-
-    }
-
-  }
-  /**
-   * This method defines the Fiware Beat specific
-   * output handling
-   */
-  def sendFiwareEvent(fiwareEvent: FiwareEvent):Unit = {
-    /*
-     * Transform the received event into a serialized
-     * [JsonObject]
-     */
-    if (fiwareTransform.isEmpty)
-      throw new Exception(s"[OutputHandler] No transformer configured to transform a [FiwareEvent].")
-
-    if (namespace.isEmpty)
-      throw new Exception(s"[OutputHandler] No namespace configured to transform a [FiwareEvent].")
-
-    val jsonObject = fiwareTransform.get.transform(fiwareEvent, namespace.get)
-    /*
-     * Check which output channel is configured
-     */
-    if (channel.isEmpty)
-      throw new Exception(s"[OutputHandler] No output channel configured.")
-
-    channel.get match {
-      case "mqtt" =>
-        throw new Exception("not implemented yet.")
-
-      case "sse" =>
-        if (queue.isDefined && jsonObject.isDefined)
-          queue.get.offer(jsonObject.get.toString)
-
-      case _ =>
-        println(jsonObject)
-
-    }
-
-  }
-  /**
-   * This method defines the Things Beat specific
-   * output handling
-   */
-  def sendThingsEvent(mqttEvent: MqttEvent):Unit = {
-    /*
-     * Transform the received event into a serialized
-     * [JsonObject]
-     */
-    if (thingsTransform.isEmpty)
-      throw new Exception(s"[OutputHandler] No transformer configured to transform a [MqttEvent].")
-
-    if (namespace.isEmpty)
-      throw new Exception(s"[OutputHandler] No namespace configured to transform a [MqttEvent].")
-
-    val jsonObject = thingsTransform.get.transform(mqttEvent, namespace.get)
-    /*
-     * Check which output channel is configured
-     */
-    if (channel.isEmpty)
-      throw new Exception(s"[OutputHandler] No output channel configured.")
-
-    channel.get match {
-      case "mqtt" =>
-        throw new Exception("not implemented yet.")
-
-      case "sse" =>
-        if (queue.isDefined && jsonObject.isDefined)
-          queue.get.offer(jsonObject.get.toString)
 
       case _ =>
         println(jsonObject)

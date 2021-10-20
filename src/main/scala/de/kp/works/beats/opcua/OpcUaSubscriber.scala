@@ -21,6 +21,7 @@ package de.kp.works.beats.opcua
 import com.google.gson.JsonObject
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.{UaMonitoredItem, UaSubscription}
 import org.eclipse.milo.opcua.stack.core.AttributeId
@@ -38,7 +39,7 @@ import scala.collection.JavaConversions._
 class OpcUaSubscriber(
    client: OpcUaClient,
    subscription: UaSubscription,
-   callback: OpcUaCallback) {
+   outputHandler: OutputHandler) {
 
   private val LOGGER = LoggerFactory.getLogger(classOf[OpcUaSubscriber])
 
@@ -281,11 +282,11 @@ class OpcUaSubscriber(
        * This mechanism defines the bridge to subsequent
        * data computation
        */
-      callback.onMessage(Some(opcUaMessage))
+      outputHandler.sendOpcUaEvent(Some(opcUaMessage))
 
     } catch {
       case _: Exception =>
-        callback.onMessage(None)
+        outputHandler.sendOpcUaEvent(None)
 
     }
   }
