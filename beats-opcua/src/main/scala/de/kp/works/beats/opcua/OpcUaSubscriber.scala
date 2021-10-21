@@ -18,7 +18,6 @@ package de.kp.works.beats.opcua
  *
  */
 
-import com.google.gson.JsonObject
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.handler.OutputHandler
