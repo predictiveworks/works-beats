@@ -75,6 +75,7 @@ class FiwareRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, 
                   headers = headers,
                   entity = ByteString(message),
                   protocol = HttpProtocols.`HTTP/1.1`)
+
               case Response(Success(_)) =>
 
                 val headers = List(

@@ -272,17 +272,8 @@ class OpcUaSubscriber(
 
     try {
 
-      val jsonTopic = OpcUaTransform.dataTopicToJson(dataTopic)
-      val jsonValue = OpcUaTransform.dataValueToJson(dataValue)
-
-      val opcUaMessage = new JsonObject
-      opcUaMessage.add("topic", jsonTopic)
-      opcUaMessage.add("value", jsonValue)
-      /*
-       * This mechanism defines the bridge to subsequent
-       * data computation
-       */
-      outputHandler.sendOpcUaEvent(Some(opcUaMessage))
+      val jsonObject = OpcUaTransform.transform(dataTopic, dataValue)
+      outputHandler.sendOpcUaEvent(Some(jsonObject))
 
     } catch {
       case _: Exception =>
@@ -290,6 +281,5 @@ class OpcUaSubscriber(
 
     }
   }
-
 
 }

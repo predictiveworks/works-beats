@@ -21,7 +21,7 @@ package de.kp.works.beats.opcua
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson
-import com.google.gson.JsonObject
+import de.kp.works.beats.events.OpcUaEvent
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue
 
 import java.time.Instant
@@ -31,12 +31,73 @@ object OpcUaTransform {
 
   private val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
+  /**
+   * This is the main method to combine topic and value
+   * that refer to the OPCUA server notification into a
+   * single data format
+   */
+  def transform(topic: OpcUaTopic, value: DataValue): gson.JsonObject = {
+    /*
+     * Extract fields from data value, and fill
+     * with default values if necessary
+     */
+    val sourceTime =
+      if (value.getSourceTime.isNull)
+        Instant.now()
+      else
+        value.getSourceTime.getJavaInstant
+
+    val serverTime =
+      if (value.getServerTime.isNull)
+        Instant.now()
+      else
+        value.getServerTime.getJavaInstant
+
+    val sourcePicoseconds = value.getSourcePicoseconds.intValue()
+    val serverPicoseconds = value.getServerPicoseconds.intValue()
+
+    val statusCode = value.getStatusCode.getValue
+    val dataValue =
+      if (value.getValue.isNotNull)
+        value.getValue.getValue
+      else null
+    /*
+     * As a first step, topic & value are organized
+     * as [OpcUaEvent] and then this event is converted
+     * into a JsonObject
+     */
+    val event = OpcUaEvent(
+      /*
+       * STEP #1: Extract fields from OPC-UA topic
+       */
+      address    = topic.address,
+      browsePath = topic.browsePath,
+      topicName  = topic.topicName,
+      topicType  = topic.topicType.toString,
+      systemName = topic.systemName,
+      /*
+       * STEP #2: Data value representation
+       */
+      sourceTime = sourceTime.toEpochMilli,
+      sourcePicoseconds = sourcePicoseconds,
+      serverTime = serverTime.toEpochMilli,
+      serverPicoseconds = serverPicoseconds,
+      statusCode = statusCode,
+      dataValue = dataValue)
+
+    val serialized = mapper.writeValueAsString(event)
+    gson.JsonParser.parseString(serialized).getAsJsonObject
+
+  }
 
   def splitAddress(address: String): Array[String] = {
     val regex = "(?<!\\\\)\\/"
     address.split(regex)
   }
-
+  /**
+   * This method transforms the OPC-UA data value
+   * into a JSON object
+   */
   def dataValueToJson(v: DataValue): gson.JsonObject = {
 
     val value = if (v.getValue.isNotNull) v.getValue.getValue else null
@@ -60,8 +121,11 @@ object OpcUaTransform {
     gson.JsonParser.parseString(serialized).getAsJsonObject
 
   }
-
-  def dataTopicToJson(topic: OpcUaTopic): JsonObject = {
+  /**
+   * This method transforms the OPC-UA topic
+   * into a JSON object
+   */
+  def dataTopicToJson(topic: OpcUaTopic): gson.JsonObject = {
 
     val serialized = mapper.writeValueAsString(topic)
     gson.JsonParser.parseString(serialized).getAsJsonObject
