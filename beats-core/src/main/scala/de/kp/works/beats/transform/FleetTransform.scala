@@ -88,7 +88,7 @@ class FleetTransform extends FileTransform {
          */
         val json = new JsonObject
 
-        json.addProperty("type", s"$namespace/status")
+        json.addProperty("type", s"$namespace/osquery_status")
         json.addProperty("event", event.eventData)
 
         json
