@@ -18,9 +18,9 @@ package de.kp.works.beats.tls.actor
  *
  */
 import akka.http.scaladsl.model.HttpRequest
-import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.tls.TLSTransform
 import de.kp.works.beats.tls.actor.ResultActor._
 import de.kp.works.beats.tls.redis.OsqueryNode
@@ -107,9 +107,9 @@ import de.kp.works.beats.tls.redis.OsqueryNode
  * }
  */
 
-class ResultActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
+class ResultActor(outputHandler:OutputHandler) extends BaseActor {
 
-  private val namespace = BeatsConf.OSQUERY_CONF
+  private val namespace = BeatsConf.OSQUERY_NAME
 
   override def receive: Receive = {
 
@@ -122,22 +122,27 @@ class ResultActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
       origin ! ResultRsp("Logging started", success = true)
 
       try {
-        /*
-         * Repack request and send to REDIS instance leveraging
-         * the `result` stream. Note, query results of all nodes
-         * are collected in a single message stream.
-         */
+
         val node = request.node
         val data = request.data
+        /*
+         * This implementation supports different query result
+         * withing a single result request.
+         *
+         * Send each batch of a certain table (or query) name
+         * to the output channel
+         */
+        val transformed = TLSTransform.transform(node, data)
+        transformed.foreach{case(table, batch) => {
 
-        val eventType = s"beat/$namespace/result"
-        val eventData = TLSTransform.transform(node, data)
+          val json = new JsonObject
 
-        val sseEvent = new JsonObject
-        sseEvent.addProperty("type", eventType)
-        sseEvent.addProperty("event", eventData.toString)
+          json.addProperty("type", s"beat/$namespace/$table")
+          json.addProperty("event", batch.toString)
 
-        queue.offer(sseEvent.toString)
+          outputHandler.sendEvent(json)
+
+        }}
 
       } catch {
         case t:Throwable => origin ! ResultRsp("Result logging failed: " + t.getLocalizedMessage, success = false)

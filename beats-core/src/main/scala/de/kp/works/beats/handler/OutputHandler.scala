@@ -211,7 +211,7 @@ class OutputHandler {
 
   }
 
-  private def sendEvent(jsonObject:JsonObject):Unit = {
+  def sendEvent(jsonObject:JsonObject):Unit = {
     /*
      * Check which output channel is configured
      */

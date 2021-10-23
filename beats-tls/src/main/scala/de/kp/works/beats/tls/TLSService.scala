@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.tls.TLSRoutes._
 import de.kp.works.beats.tls.actor._
 import de.kp.works.beats.{BeatsConf, BeatsService}
@@ -37,6 +38,22 @@ class TLSService extends BeatsService(BeatsConf.OSQUERY_CONF) {
   }
 
   override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
+    /*
+     * OUTPUT (WRITE) DIRECTION
+     *
+     * The current implementation of [TLSBeat] supports
+     * `mqtt` and `sse` as output channel.
+     *
+     * Note, in contrast to other beats, this TLSBeat
+     * leverages a different transformation mechanism.
+     *
+     * therefore, no transformer is assigned here.
+     */
+    val eventHandler:OutputHandler = new OutputHandler
+    eventHandler.setNamespace(BeatsConf.OSQUERY_NAME)
+
+    val channel = getOutputCfg.getString("channel")
+    eventHandler.setChannel(channel)
     /*
      * NODE MANAGEMENT
      *
@@ -53,7 +70,7 @@ class TLSService extends BeatsService(BeatsConf.OSQUERY_CONF) {
      * INFORMATION MANAGEMENT
      */
     lazy val logActor = system
-      .actorOf(Props(new LogActor(queue)), LOG_ACTOR)
+      .actorOf(Props(new LogActor(eventHandler)), LOG_ACTOR)
 
     lazy val readActor = system
       .actorOf(Props(new ReadActor()), READ_ACTOR)

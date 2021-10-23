@@ -22,6 +22,7 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson._
 import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.tls.TLSConstants._
 import de.kp.works.beats.tls.actor.StatusActor._
 import de.kp.works.beats.tls.redis.OsqueryNode
@@ -32,9 +33,9 @@ import scala.collection.JavaConversions._
  * This actor publishes status logs to a pre-configured
  * data sink
  */
-class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
+class StatusActor(outputHandler:OutputHandler) extends BaseActor {
 
-  private val namespace = BeatsConf.OSQUERY_CONF
+  private val namespace = BeatsConf.OSQUERY_NAME
 
   override def receive: Receive = {
 
@@ -50,65 +51,64 @@ class StatusActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
       origin ! StatusRsp("Logging started", success = true)
 
       try {
+
+        val batch = buildBatch(request)
         /*
-         * Repack request and send to REDIS instance leveraging
-         * the `status` stream. Note, query results of all nodes
-         * are collected in a single message stream.
-         *
-         * StatusActor -- [Publish] --> RedisProducer
-         *
+         * Send each status message as log event to the
+         * output channel; this approach is equivalent
+         * to the Fleet based mechanism.
          */
-        val eventType = s"beat/$namespace/status"
-        val eventData = buildEvents(request)
+        batch.foreach(batchObj => {
 
-        val sseEvent = new JsonObject
-        sseEvent.addProperty("type", eventType)
-        sseEvent.addProperty("event", eventData.toString)
+          val json = new JsonObject
 
-        queue.offer(sseEvent.toString)
+          json.addProperty("type", s"beat/$namespace/osquery_status")
+          json.addProperty("event", batchObj.toString)
+
+          outputHandler.sendEvent(json)
+
+        })
 
       } catch {
         case t:Throwable => origin ! StatusRsp("Status logging failed: " + t.getLocalizedMessage, success = false)
       }
   }
 
-  private def buildEvents(request:StatusReq):JsonArray = {
-    /*
-     * Repack request and send to REDIS instance
-     */
-    val events = new JsonArray
+  private def buildBatch(request:StatusReq):JsonArray = {
+
+    val batch = new JsonArray
 
     val node = request.node
     val data = request.data.iterator
 
     while (data.hasNext) {
 
-      val item = data.next.getAsJsonObject
-      val event = new JsonObject()
+      val oldObj = data.next.getAsJsonObject
+      val batchObj = new JsonObject
       /*
        * Assign header to event
        */
-      event.addProperty(HOST_IDENTIFIER, node.hostIdentifier)
-      event.addProperty(NODE_IDENT, node.uuid)
-      event.addProperty(NODE_KEY, node.nodeKey)
+      batchObj.addProperty(HOST_IDENTIFIER, node.hostIdentifier)
+      batchObj.addProperty(NODE_IDENT, node.uuid)
+      batchObj.addProperty(NODE_KEY, node.nodeKey)
 
       /*
        * Assign body to event
        */
-      item.entrySet.foreach(entry => {
+      oldObj.entrySet.foreach(entry => {
 
         val k = entry.getKey
         val v = entry.getValue
 
-        event.add(k, v)
+        batchObj.add(k, v)
 
       })
 
-      events.add(event)
+      batch.add(batchObj)
 
     }
 
-    events
+    batch
 
   }
 

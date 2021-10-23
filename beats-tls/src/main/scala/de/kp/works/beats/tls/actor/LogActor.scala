@@ -21,7 +21,7 @@ import akka.actor.Props
 import akka.http.scaladsl.model.HttpRequest
 import akka.pattern.ask
 import akka.routing.{DefaultResizer, RoundRobinPool}
-import akka.stream.scaladsl.SourceQueueWithComplete
+import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.tls.TLSConstants._
 import de.kp.works.beats.tls.actor.ResultActor._
 import de.kp.works.beats.tls.actor.StatusActor._
@@ -29,7 +29,7 @@ import de.kp.works.beats.tls.redis.RedisApi
 
 import scala.concurrent.Await
 
-class LogActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
+class LogActor(outputHandler:OutputHandler) extends BaseActor {
   /**
    * We define a common resizer for all children pools
    */
@@ -41,12 +41,12 @@ class LogActor(queue:SourceQueueWithComplete[String]) extends BaseActor {
   private val resultActor = system.actorOf(
     RoundRobinPool(instances)
       .withResizer(resizer)
-      .props(Props(new ResultActor(queue))), "ResultActor")
+      .props(Props(new ResultActor(outputHandler))), "ResultActor")
 
   private val statusActor = system.actorOf(
     RoundRobinPool(instances)
       .withResizer(resizer)
-      .props(Props(new StatusActor(queue))), "StatusActor")
+      .props(Props(new StatusActor(outputHandler))), "StatusActor")
 
   override def execute(request:HttpRequest):String = {
     /*
