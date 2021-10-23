@@ -50,6 +50,11 @@ object FleetFormatUtil {
 }
 class FleetTransform extends FileTransform {
 
+  private val X_WORKS_ACTION    = "x_works_action"
+  private val X_WORKS_HOSTNAME  = "x_works_hostname"
+  private val X_WORKS_NAME      = "x-works_name"
+  private val X_WORKS_TIMESTAMP = "x_works_timestamp"
+
   override def transform(event:FileEvent, namespace:String):JsonObject = {
     /*
      * The Osquery (Fleet) Manager creates and updates 2 different
@@ -69,12 +74,12 @@ class FleetTransform extends FileTransform {
          * and the query name is used as the event type
          */
         val log = JsonParser.parseString(event.eventData).getAsJsonObject
-        val (query, payload) = transformLog(log)
+        val (table, batch) = transformLog(log)
 
         val json = new JsonObject
 
-        json.addProperty("type", s"beat/$namespace/$query")
-        json.addProperty("event", payload)
+        json.addProperty("type", s"beat/$namespace/$table")
+        json.addProperty("event", batch)
 
         json
 
@@ -102,18 +107,12 @@ class FleetTransform extends FileTransform {
 
   /**
    * This method harmonizes the 3 different result log formats
-   * into a common output format:
-   *
-   * - name:         String
-   * - calendarTime: java.sql.Date
-   * - timestamp:    Long
-   * - hostname:     String
-   * - format:       String (event)
-   * - <action>:     JsonArray ((List of) columns)
+   * into a common output format. The approach applied here, is
+   * synchronized with the IgniteGraph project
    */
   private def transformLog(oldObject:JsonObject):(String, String) = {
 
-    val newObject = new JsonObject
+    val commonObj = new JsonObject
     /*
      * Extract `name` (of the query) and normalize `calendarTime`:
      *
@@ -132,16 +131,16 @@ class FleetTransform extends FileTransform {
      * UTC
      */
     val name = oldObject.get("name").getAsString
-    newObject.addProperty("name", name)
+    commonObj.addProperty(X_WORKS_NAME, name)
 
     val calendarTime = oldObject.get("calendarTime").getAsString
     val datetime = transformCalTime(calendarTime)
 
     val timestamp = datetime.getTime
-    newObject.addProperty("timestamp", timestamp)
+    commonObj.addProperty(X_WORKS_TIMESTAMP, timestamp)
 
     val hostname = getHostname(oldObject)
-    newObject.addProperty("hostname", hostname)
+    commonObj.addProperty(X_WORKS_HOSTNAME, hostname)
 
     if (oldObject.get("columns") != null) {
       /*
@@ -164,7 +163,12 @@ class FleetTransform extends FileTransform {
        *  "numerics": false
        * }
        *
-       *
+       */
+      val batchObj = commonObj
+
+      val action = oldObject.get("action").getAsString
+      batchObj.addProperty(X_WORKS_ACTION, action)
+      /*
        * Extract log event specific format and thereby
        * assume that the columns provided are the result
        * of an offline configuration process.
@@ -172,30 +176,18 @@ class FleetTransform extends FileTransform {
        * NOTE: the mechanism below does not work for adhoc
        * (distributed) queries.
        */
-      newObject.addProperty("format", "event")
-      /*
-       * Normalization of action & columns fields to be
-       * in sync with batch and snapshot events
-       */
-      val action = oldObject.get("action").getAsString
       val columns = oldObject.get("columns").getAsJsonObject
+      /*
+       * Extract the column names in ascending order to
+       * enable a correct match with the schema definition
+       */
+      val colnames = columns.keySet.toSeq.sorted
+      colnames.foreach(colName => batchObj.add(colName, columns.get(colName)))
 
       val batch = new JsonArray
-      batch.add(columns)
+      batch.add(batchObj)
 
-      newObject.add(action, batch)
-      /*
-       * Output format:
-       *
-       * - name:         String
-       * - calendarTime: java.sql.Date
-       * - timestamp:    Long
-       * - hostname:     String
-       * - format:       String (event)
-       * - <action>:     JsonArray (columns)
-       */
-
-      (name, newObject.toString)
+      (name, batch.toString)
 
     }
     else if (oldObject.get("diffResults") != null) {
@@ -231,28 +223,29 @@ class FleetTransform extends FileTransform {
        *    "numerics": false
        *  }
        */
-      newObject.addProperty("format", "batch")
-
       val diffResults = oldObject.get("diffResults").getAsJsonObject
+
+      val batch = new JsonArray
 
       val actions = diffResults.keySet().toSeq.sorted
       actions.foreach(action => {
 
         val data = diffResults.get(action).getAsJsonArray
-        newObject.add(action, data)
+        data.foreach(columns => {
+
+          val batchObj = commonObj
+          batchObj.addProperty(X_WORKS_ACTION, action)
+
+          val colnames = columns.getAsJsonObject.keySet.toSeq.sorted
+          colnames.foreach(colName => batchObj.add(colName, columns.getAsJsonObject.get(colName)))
+
+          batch.add(batchObj)
+
+        })
 
       })
-      /*
-       * Output format:
-       *
-       * - name:         String
-       * - calendarTime: java.sql.Date
-       * - timestamp:    Long
-       * - hostname:     String
-       * - format:       String (batch)
-       * - <action>:     JsonArray (List of columns)
-       */
-      (name, newObject.toString)
+
+      (name, batch.toString)
 
     }
     else if (oldObject.get("snapshot") != null) {
@@ -294,12 +287,22 @@ class FleetTransform extends FileTransform {
        *    "numerics": false
        *  }
        */
-      newObject.addProperty("format", "snapshot")
+      val snapshot = oldObject.get("snapshot").getAsJsonArray
 
-      val data = oldObject.get("snapshot").getAsJsonArray
-      newObject.add("snapshot", data)
+      val batch = new JsonArray
+      snapshot.foreach(columns => {
 
-      (name, newObject.toString)
+        val batchObj = commonObj
+        batchObj.addProperty(X_WORKS_ACTION, "snapshot")
+
+        val colnames = columns.getAsJsonObject.keySet.toSeq.sorted
+        colnames.foreach(colName => batchObj.add(colName, columns.getAsJsonObject.get(colName)))
+
+        batch.add(batchObj)
+
+      })
+
+      (name, batch.toString)
 
     }
     else {
