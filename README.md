@@ -1,7 +1,16 @@
 
 # Works Beats
 
-A collection of standalone Akka-based Http(s) services to connect to Fiware, OpenCTI and ThingsBoard.
+Works Beats are part of the Cy(I)IoT stack and expand its capabilities by extremely
+useful components to work alongside PredictiveWorks.
+
+Beats are essentially lightweight, standalone purpose-built micro-services based on Akka.
+They are built to acquire data and then it into the Apache Spark based  Cy(I)IoT ecosystem.
+
+Works Beats harmonize multiple data protocols and currently ship data via MQTT and SSE.
+
+There are current 7 official Beats: Fiware Beat, Fleet Beat, OPC-UA Beat, OpenCTI Beat, Things Beat, 
+TLS Beat and Zeek Beat.
 
 ## FIWARE Beat
 

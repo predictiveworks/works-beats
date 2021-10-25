@@ -22,12 +22,13 @@ package de.kp.works.beats.transform
 import com.google.gson.JsonObject
 import de.kp.works.beats.BeatsTransform
 import de.kp.works.beats.events.SseEvent
-
 /**
- * OpenCTI events do not respect the NGSI format.
+ * The [CTITransform] class retrieves SSE events from OpenCTI
+ * and transforms them into an NGSI v2 compliant format.
  *
- * This transformer is used to harmonize the OpenCTI
- * events to a standard format.
+ * The current implementation focuses on the STIX data part
+ * of the overall SSE message, and ignores other fields like
+ * markings, origin, message or version.
  */
 class CTITransform extends BeatsTransform {
   /*
