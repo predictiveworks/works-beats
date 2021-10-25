@@ -26,8 +26,8 @@ import de.kp.works.beats.events.SseEvent
 /**
  * OpenCTI events do not respect the NGSI format.
  *
- * This transformer can be used to harmonize the
- * OpenCTI events to a standard format.
+ * This transformer is used to harmonize the OpenCTI
+ * events to a standard format.
  */
 class CTITransform extends BeatsTransform {
   /*
@@ -76,60 +76,18 @@ class CTITransform extends BeatsTransform {
      */
     try {
 
-      val id = sseEvent.eventId
       val event = sseEvent.eventType
-
       val data = mapper.readValue(sseEvent.data, classOf[Map[String, Any]])
 
       /**
        * STEP #1: Unpack the event data
        */
-
-      /** markings **/
-
-      val markings = {
-        if (data.contains("markings")) {
-          data("markings").asInstanceOf[List[Map[String, Any]]]
-        }
-        else
-          List.empty[Map[String, Any]]
-      }
-
-      /** origin **/
-
-      val origin = {
-        if (data.contains("origin")) {
-          data("origin").asInstanceOf[Map[String, Any]]
-        }
-        else
-          Map.empty[String, Any]
-      }
-
-      /** data **/
-
       val payload = {
         if (data.contains("data")) {
           data("data").asInstanceOf[Map[String, Any]]
         }
         else
           Map.empty[String, Any]
-      }
-
-      /** message **/
-
-      val message = data.getOrElse("message", "").asInstanceOf[String]
-
-      /** version **/
-
-      val version = {
-        if (data.contains("version")) {
-          val value = data("version")
-          value match {
-            case i: Int => i.toString
-            case _ => value.asInstanceOf[String]
-          }
-        }
-        else "1"
       }
 
       if (payload.isEmpty) return None
@@ -144,7 +102,7 @@ class CTITransform extends BeatsTransform {
       event match {
         case "create" =>
           val eventType = s"beat/$namespace/create"
-          val eventData = CreateTransform.transform(payload)
+          val eventData = transformCreate(payload)
 
           if (eventData.isDefined) {
 
@@ -158,7 +116,7 @@ class CTITransform extends BeatsTransform {
 
         case "delete" =>
           val eventType = s"beat/$namespace/delete"
-          val eventData = DeleteTransform.transform(payload)
+          val eventData = transformDelete(payload)
 
           if (eventData.isDefined) {
 
@@ -178,7 +136,7 @@ class CTITransform extends BeatsTransform {
            * documentation for stream events (v4.5.1) and
            * STIX data version v02
            */
-          val eventData = UpdateTransform.transform(payload)
+          val eventData = transformUpdate(payload)
 
           if (eventData.isDefined) {
 
@@ -200,4 +158,241 @@ class CTITransform extends BeatsTransform {
     }
 
   }
+
+  def transformCreate(payload: Map[String, Any]): Option[JsonObject] = {
+
+    val entityId = payload.getOrElse("id", "").asInstanceOf[String]
+    val entityType = payload.getOrElse("type", "").asInstanceOf[String]
+
+    if (entityId.isEmpty || entityType.isEmpty) return None
+    /*
+     * Build initial JSON output object, which
+     * represents an NGSI entity
+     */
+    val entityJson = new JsonObject
+    entityJson.addProperty("id", entityId)
+    entityJson.addProperty("type", entityType)
+    /*
+     * Add data operation as NGSI compliant
+     * attribute specification
+     */
+    val attrJson = new JsonObject
+    attrJson.add("metadata", new JsonObject)
+
+    attrJson.addProperty("type", "String")
+    attrJson.addProperty("value", "create")
+
+    entityJson.add("action", attrJson)
+
+    val filter = Seq("id", "type")
+
+    val keys = payload.keySet.filter(key => !filter.contains(key))
+    fillEntity(payload, keys, entityJson)
+
+    Some(entityJson)
+
+  }
+
+  def transformDelete(payload: Map[String, Any]): Option[JsonObject] = {
+
+    val entityId = payload.getOrElse("id", "").asInstanceOf[String]
+    val entityType = payload.getOrElse("type", "").asInstanceOf[String]
+
+    if (entityId.isEmpty || entityType.isEmpty) return None
+    /*
+     * Build initial JSON output object; this object
+     * represents an NGSI entity
+     */
+    val entityJson = new JsonObject
+    entityJson.addProperty("id", entityId)
+    entityJson.addProperty("type", entityType)
+    /*
+     * Add data operation as attribute
+     */
+    val attrJson = new JsonObject
+    attrJson.add("metadata", new JsonObject)
+
+    attrJson.addProperty("type", "String")
+    attrJson.addProperty("value", "delete")
+
+    entityJson.add("action", attrJson)
+    /*
+     * Extract other attributes from the
+     * provided payload
+     */
+    val filter = Seq("id", "type")
+    val keys = payload.keySet.filter(key => !filter.contains(key))
+
+    fillEntity(payload, keys, entityJson)
+    Some(entityJson)
+
+  }
+
+  def transformUpdate(payload: Map[String, Any]): Option[JsonObject] = {
+    /*
+     * Extract patch information, determine patch operation
+     * and extract the associated attributes and values
+     */
+    val patch = {
+      if (payload.contains("x_opencti_patch")) {
+        payload("x_opencti_patch").asInstanceOf[Map[String, Any]]
+      }
+      else
+        Map.empty[String, Any]
+    }
+
+    if (patch.isEmpty) return None
+
+    val entityId = payload.getOrElse("id", "").asInstanceOf[String]
+    val entityType = payload.getOrElse("type", "").asInstanceOf[String]
+
+    if (entityId.isEmpty || entityType.isEmpty) return None
+    /*
+     * Build initial JSON output object; this object
+     * represents an NGSI entity
+     */
+    val entityJson = new JsonObject
+    entityJson.addProperty("id", entityId)
+    entityJson.addProperty("type", entityType)
+    /*
+     * Add data operation as attribute
+     */
+    val attrJson = new JsonObject
+    attrJson.add("metadata", new JsonObject)
+
+    attrJson.addProperty("type", "String")
+    attrJson.addProperty("value", "update")
+
+    entityJson.add("action", attrJson)
+    /*
+     * The keys are `replace`, `add` and `remove` and
+     * multiple modes are supported
+     */
+    patch.keySet.foreach(mode => {
+      if (patch.contains(mode)) {
+        /*
+         * Extract attribute names
+         */
+        val attrNames = patch(mode).asInstanceOf[Map[String, Any]].keySet
+        /*
+        * The update operation is added as metadata
+        * to the transformed entity
+        */
+        val metaJson = new JsonObject
+        metaJson.addProperty("mode", mode)
+
+        attrNames.foreach(attrName => {
+          mode match {
+            case "add" | "remove" =>
+              /*
+               * The content of the patch message can be a list
+               * of attribute values or a list of reference maps
+               *
+               * Reference maps contain an internal OpenCTI id
+               * and a value. As the purpose of this Beat is to
+               * publish data to an external system, references
+               * to internal identifiers are skipped
+               */
+              val content = patch(mode)
+                .asInstanceOf[Map[String, Any]](attrName)
+                .asInstanceOf[List[Any]]
+
+              if (content.nonEmpty) {
+
+                val attrJson = new JsonObject
+                attrJson.add("metadata", metaJson)
+                /*
+                 * Transform content into a list of plain values
+                 */
+                val values = content.map {
+                  /*
+                   * List values specify a plain value or a map,
+                   * where the respective value is defined as `value`
+                   * field.
+                   */
+                  case map: Map[_, Any] => map
+                    .asInstanceOf[Map[String, Any]]("value")
+                  case entry => entry
+                }
+                /*
+                 * Determine data from head element
+                 */
+                val head = values.head
+                val basicType = getBasicType(head)
+
+                if (values.size == 1) {
+
+                  val attrType = basicType
+                  attrJson.addProperty("type", attrType)
+
+                  val attrValu = mapper.writeValueAsString(head)
+                  attrJson.addProperty("value", attrValu)
+
+                }
+                else {
+                  val attrType = s"List[$basicType]"
+                  attrJson.addProperty("type", attrType)
+
+                  val attrValu = mapper.writeValueAsString(values)
+                  attrJson.addProperty("value", attrValu)
+                }
+
+                entityJson.add(attrName, attrJson)
+
+              }
+            case "replace" =>
+              /*
+               * { current, previous }
+               */
+              val content = patch(mode)
+                .asInstanceOf[Map[String, Any]](attrName).asInstanceOf[Map[String, Any]]
+
+              val attrJson = new JsonObject
+              attrJson.add("metadata", metaJson)
+
+              val current = content("current")
+              current match {
+                case values: List[Any] =>
+
+                  val head = values.head
+                  val basicType = getBasicType(head)
+
+                  val attrType = s"List[$basicType]"
+                  attrJson.addProperty("type", attrType)
+
+                  val attrValu = mapper.writeValueAsString(values)
+                  attrJson.addProperty("value", attrValu)
+
+                case _ =>
+                  val basicType = getBasicType(current)
+
+                  val attrType = basicType
+                  attrJson.addProperty("type", attrType)
+
+                  val attrValu = mapper.writeValueAsString(current)
+                  attrJson.addProperty("value", attrValu)
+
+              }
+
+              entityJson.add(attrName, attrJson)
+            case _ =>
+              val now = new java.util.Date().toString
+              throw new Exception(s"[ERROR] $now - Patch operation `$mode` is not supported.")
+          }
+
+        })
+      }
+    })
+    /*
+     * Extract other attributes from the
+     * provided payload
+     */
+    val filter = Seq("id", "type", "x_opencti_patch")
+    val keys = payload.keySet.filter(key => !filter.contains(key))
+
+    fillEntity(payload, keys, entityJson)
+    Some(entityJson)
+
+  }
+
 }

@@ -20,7 +20,7 @@ package de.kp.works.beats
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.google.gson.{JsonArray, JsonObject}
+import com.google.gson.JsonObject
 
 import java.util.UUID
 
@@ -74,42 +74,12 @@ trait BeatsTransform {
              */
             val head = list.head
             if (head.isInstanceOf[Map[_, _]]) {
-              /*
-               * The attribute value is a list of objects
-               */
-              val valueJson = new JsonArray
-              list.foreach(entry => {
-
-                val entryMap = entry.asInstanceOf[Map[String, Any]]
-                if (entryMap.nonEmpty) {
-
-                  val entryJson = new JsonObject
-                  /*
-                   * {
-                   *    "name1" : { "type1": "...", "value1": "..."},
-                   *    "name2" : { "type2": "...", "value2": "..."},
-                   * }
-                   */
-                  entryMap.foreach { case (k, v) =>
-
-                    val itemJson = new JsonObject
-
-                    val basicType = getBasicType(v)
-                    itemJson.addProperty("type", basicType)
-
-                    putValue(v, basicType, itemJson)
-                    entryJson.add(k, itemJson)
-                  }
-
-                  valueJson.add(entryJson)
-
-                }
-              })
 
               val attrType = "List[Map]"
               attrJson.addProperty("type", attrType)
 
-              attrJson.add("value", valueJson)
+              val attrValu = mapper.writeValueAsString(list)
+              attrJson.addProperty("value", attrValu)
 
             }
             else {
@@ -122,7 +92,8 @@ trait BeatsTransform {
               val attrType = s"List[$basicType]"
               attrJson.addProperty("type", attrType)
 
-              putValues(list, basicType, attrJson)
+              val attrValu = mapper.writeValueAsString(list)
+              attrJson.addProperty("value", attrValu)
 
             }
             /*
@@ -144,24 +115,11 @@ trait BeatsTransform {
             val attrJson = new JsonObject
             attrJson.add("metadata", new JsonObject)
 
-            val valueJson = new JsonObject
-
-            map.foreach { case (k, v) =>
-
-              val itemJson = new JsonObject
-
-              val basicType = getBasicType(v)
-              itemJson.addProperty("type", basicType)
-
-              putValue(v, basicType, itemJson)
-              valueJson.add(k, itemJson)
-
-            }
-
             val attrType = "Map"
             attrJson.addProperty("type", attrType)
 
-            attrJson.add("value", valueJson)
+            val attrValu = mapper.writeValueAsString(map)
+            attrJson.addProperty("value", attrValu)
 
             val attrName = key
             entityJson.add(attrName, attrJson)
@@ -182,7 +140,8 @@ trait BeatsTransform {
             val attrType = basicType
             attrJson.addProperty("type", attrType)
 
-            putValue(value, basicType, attrJson)
+            val attrValu = mapper.writeValueAsString(value)
+            attrJson.addProperty("value", attrValu)
 
             val attrName = key
             entityJson.add(attrName, attrJson)
@@ -191,199 +150,6 @@ trait BeatsTransform {
       }
 
     })
-
-  }
-
-  protected def putValue(attrVal: Any, attrType: String, attrJson: JsonObject): Unit = {
-    attrType match {
-      /*
-       * Basic data types
-       */
-      case "BigDecimal" =>
-        val value = attrVal.asInstanceOf[BigDecimal]
-        attrJson.addProperty("value", value)
-      case "Boolean" =>
-        val value = attrVal.asInstanceOf[Boolean]
-        attrJson.addProperty("value", value)
-      case "Byte" =>
-        val value = attrVal.asInstanceOf[Byte]
-        attrJson.addProperty("value", value)
-      case "Double" =>
-        val value = attrVal.asInstanceOf[Double]
-        attrJson.addProperty("value", value)
-      case "Float" =>
-        val value = attrVal.asInstanceOf[Float]
-        attrJson.addProperty("value", value)
-      case "Int" =>
-        val value = attrVal.asInstanceOf[Int]
-        attrJson.addProperty("value", value)
-      case "Long" =>
-        val value = attrVal.asInstanceOf[Long]
-        attrJson.addProperty("value", value)
-      case "Short" =>
-        val value = attrVal.asInstanceOf[Short]
-        attrJson.addProperty("value", value)
-      case "String" =>
-        val value = attrVal.asInstanceOf[String]
-        attrJson.addProperty("value", value)
-      /*
-       * Datetime support
-       */
-      case "Date" =>
-        attrVal match {
-          case _: java.sql.Date =>
-            val value = attrVal.asInstanceOf[java.sql.Date].toString
-            attrJson.addProperty("value", value)
-          case _: java.util.Date =>
-            val value = attrVal.asInstanceOf[java.util.Date].toString
-            attrJson.addProperty("value", value)
-          case _: java.time.LocalDate =>
-            val value = attrVal.asInstanceOf[java.time.LocalDate].toString
-            attrJson.addProperty("value", value)
-          case _ =>
-            val now = new java.util.Date().toString
-            throw new Exception(s"[ERROR] $now - Date data type not supported.")
-        }
-      case "Timestamp" =>
-        attrVal match {
-          case _: java.sql.Timestamp =>
-            val value = attrVal.asInstanceOf[java.sql.Timestamp].toString
-            attrJson.addProperty("value", value)
-          case _: java.time.LocalTime =>
-            val value = attrVal.asInstanceOf[java.time.LocalTime].toString
-            attrJson.addProperty("value", value)
-          case _ =>
-            val now = new java.util.Date().toString
-            throw new Exception(s"[ERROR] $now - Timestamp data type not supported.")
-        }
-      case "Datetime" =>
-        val value = attrVal.asInstanceOf[java.time.LocalDateTime].toString
-        attrJson.addProperty("value", value)
-
-      /*
-       * Handpicked data types
-       */
-      case "UUID" =>
-        val value = attrVal.asInstanceOf[java.util.UUID].toString
-        attrJson.addProperty("value", value)
-      case _ =>
-        val now = new java.util.Date().toString
-        throw new Exception(s"[ERROR] $now - Basic data type not supported.")
-    }
-  }
-
-  protected def putValues(attrVal: List[Any], attrType: String, attrJson: JsonObject): Unit = {
-
-    val arrayJson = new JsonArray
-    attrType match {
-      /*
-       * Basic data types
-       */
-      case "BigDecimal" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[BigDecimal]
-          arrayJson.add(value)
-        })
-      case "Boolean" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Boolean]
-          arrayJson.add(value)
-        })
-      case "Byte" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Byte]
-          arrayJson.add(value)
-        })
-      case "Double" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Double]
-          arrayJson.add(value)
-        })
-      case "Float" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Float]
-          arrayJson.add(value)
-        })
-      case "Int" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Int]
-          arrayJson.add(value)
-        })
-      case "Long" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Long]
-          arrayJson.add(value)
-        })
-      case "Short" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[Short]
-          arrayJson.add(value)
-        })
-      case "String" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[String]
-          arrayJson.add(value)
-        })
-      /*
-       * Datetime support
-       */
-      case "Date" =>
-        attrVal.head match {
-          case _: java.sql.Date =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.sql.Date].toString
-              arrayJson.add(value)
-            })
-          case _: java.util.Date =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.util.Date].toString
-              arrayJson.add(value)
-            })
-          case _: java.time.LocalDate =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.time.LocalDate].toString
-              arrayJson.add(value)
-            })
-          case _ =>
-            val now = new java.util.Date().toString
-            throw new Exception(s"[ERROR] $now - Date data type not supported.")
-        }
-      case "Timestamp" =>
-        attrVal.head match {
-          case _: java.sql.Timestamp =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.sql.Timestamp].toString
-              arrayJson.add(value)
-            })
-          case _: java.time.LocalTime =>
-            attrVal.foreach(item => {
-              val value = item.asInstanceOf[java.time.LocalTime].toString
-              arrayJson.add(value)
-            })
-          case _ =>
-            val now = new java.util.Date().toString
-            throw new Exception(s"[ERROR] $now - Timestamp data type not supported.")
-        }
-      case "Datetime" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[java.time.LocalDateTime].toString
-          arrayJson.add(value)
-        })
-
-      /*
-       * Handpicked data types
-       */
-      case "UUID" =>
-        attrVal.foreach(item => {
-          val value = item.asInstanceOf[java.util.UUID].toString
-          arrayJson.add(value)
-        })
-      case _ =>
-        val now = new java.util.Date().toString
-        throw new Exception(s"[ERROR] $now - Basic data type not supported.")
-    }
-
-    attrJson.add("value", arrayJson)
 
   }
 
