@@ -52,7 +52,7 @@ class FleetTransform extends FileTransform {
 
   private val X_WORKS_ACTION    = "x_works_action"
   private val X_WORKS_HOSTNAME  = "x_works_hostname"
-  private val X_WORKS_NAME      = "x-works_name"
+  private val X_WORKS_NAME      = "x_works_name"
   private val X_WORKS_TIMESTAMP = "x_works_timestamp"
 
   override def transform(event:FileEvent, namespace:String):JsonObject = {
