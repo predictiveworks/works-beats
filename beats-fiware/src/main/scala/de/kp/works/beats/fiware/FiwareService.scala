@@ -30,8 +30,6 @@ import de.kp.works.beats.subscriptions.FiwareSubscriptions
 import de.kp.works.beats.transform.FiwareTransform
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
-import scala.concurrent.Await
-
 class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
   override def buildRoute(queue: SourceQueueWithComplete[String], source: Source[ServerSentEvent, NotUsed]): Route = {
@@ -68,12 +66,12 @@ class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
 
       try {
 
-        val future = FiwareClient.subscribe(subscription, system)
-        val response = Await.result(future, timeout.duration)
+        val sid = FiwareSubscriber.subscribe(subscription)
+        if (sid.nonEmpty)
+          FiwareSubscriptions.register(sid.get, subscription)
 
-        val sid = FiwareClient.getSubscriptionId(response)
-        FiwareSubscriptions.register(sid, subscription)
-
+        else
+          throw new Exception("No subscription identifier retrieved.")
       } catch {
         case _:Throwable =>
           /*
