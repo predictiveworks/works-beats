@@ -1,5 +1,5 @@
 package de.kp.works.beats.fleet
-/*
+/**
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -23,7 +23,7 @@ import de.kp.works.beats.BaseBeat
 object FleetBeat extends BaseBeat {
 
   override var programName: String = "FleetBeat"
-  override var programDesc: String = "Publish Fleet log results as SSE."
+  override var programDesc: String = "Publish Fleet log results via multiple output channels."
 
   override def launch(args: Array[String]): Unit = {
 
