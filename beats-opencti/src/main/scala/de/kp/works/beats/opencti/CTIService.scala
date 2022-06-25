@@ -1,6 +1,6 @@
 package de.kp.works.beats.opencti
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -81,6 +81,11 @@ class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
     outputHandler.setCTITransform(new CTITransform)
 
     channel match {
+      case "fiware" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [FiwarePublisher] when setting the respective channel
+       */
       case "mqtt" =>
       /*
        * Do nothing as the [OutputHandler] initiates the

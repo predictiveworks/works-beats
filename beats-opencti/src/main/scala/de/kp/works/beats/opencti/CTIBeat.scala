@@ -31,7 +31,7 @@ import de.kp.works.beats.BaseBeat
 object CTIBeat extends BaseBeat {
 
   override var programName: String = "CTIBeat"
-  override var programDesc: String = "Publish threat events as SSE."
+  override var programDesc: String = "Publish threat events via multiple output channels."
 
   override def launch(args: Array[String]): Unit = {
 
