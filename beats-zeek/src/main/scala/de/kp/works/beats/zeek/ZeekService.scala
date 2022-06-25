@@ -68,6 +68,11 @@ class ZeekService extends BeatsService(BeatsConf.ZEEK_CONF) {
     outputHandler.setFileTransform(new ZeekTransform)
 
     channel match {
+      case "fiware" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [FiwarePublisher] when setting the respective channel
+       */
       case "mqtt" =>
       /*
        * Do nothing as the [OutputHandler] initiates the

@@ -23,7 +23,7 @@ import de.kp.works.beats.BaseBeat
 class ZeekBeat extends BaseBeat {
 
   override var programName: String = "ZeekBeat"
-  override var programDesc: String = "Publish Zeek log results as SSE."
+  override var programDesc: String = "Publish Zeek log results via multiple output channels."
 
   override def launch(args: Array[String]): Unit = {
 
