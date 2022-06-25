@@ -104,6 +104,25 @@ object BeatsConf {
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")
     }
   }
+  def getLogFolder:String = {
+    /*
+     * Determine the logging folder from the system
+     * property `logging.dir`. If this property is
+     * not set, fallback to the logging configuration
+     */
+    val folder = System.getProperty("logging.dir")
+    if (folder == null)
+      getLoggingCfg.getString("folder")
+
+    else folder
+
+  }
+  /**
+   * This method provides the logging configuration of
+   * the Works. Beat
+   */
+  def getLoggingCfg: Config =
+    cfg.get.getConfig("logging")
 
   def getOutputCfg: Config = {
 

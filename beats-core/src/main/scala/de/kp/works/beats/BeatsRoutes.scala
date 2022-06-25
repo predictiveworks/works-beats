@@ -1,5 +1,6 @@
 package de.kp.works.beats
-/*
+
+/**
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -30,6 +31,10 @@ import akka.util.Timeout
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
+/**
+ * [BeatsRoutes] supports the SSE route of the
+ * WorksBeat service.
+ */
 class BeatsRoutes(source:Source[ServerSentEvent, NotUsed]) extends CORS {
   /*
  	 * Common timeout for all Akka connections
@@ -39,11 +44,12 @@ class BeatsRoutes(source:Source[ServerSentEvent, NotUsed]) extends CORS {
   /** EVENT **/
 
   /*
-   * This is the Server Sent Event route
+   * This is the Server Sent Event route; the route
+   * is harmonized with the Sensor Beat SSE route
    */
   def event:Route = {
 
-    path("event") {
+    path("beat" / "stream") {
       options {
         extractOptions
       } ~

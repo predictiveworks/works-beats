@@ -34,7 +34,11 @@ object FleetFormats extends Enumeration {
   val STATUS: FleetFormats.Value = Value(2, "status.log")
 
 }
-
+/*
+ * TODO
+ *  Harmonize fleet results into a common output format
+ *
+ */
 object FleetFormatUtil {
 
   def fromFile(fileName:String):FleetFormats.Value = {
