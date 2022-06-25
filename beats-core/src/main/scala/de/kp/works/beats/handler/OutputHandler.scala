@@ -1,6 +1,6 @@
 package de.kp.works.beats.handler
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +21,7 @@ package de.kp.works.beats.handler
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson.JsonObject
 import de.kp.works.beats.events.{FileEvent, FiwareEvent, MqttEvent, SseEvent}
+import de.kp.works.beats.fiware.FiwarePublisher
 import de.kp.works.beats.mqtt.MqttPublisher
 import de.kp.works.beats.transform.{CTITransform, FileTransform, FiwareTransform, ThingsTransform}
 
@@ -32,6 +33,11 @@ class OutputHandler {
    * of a certain event about the sender
    */
   private var namespace:Option[String] = None
+  /*
+   * The Fiware publisher to use. The [FiwarePublisher] is initiated
+   * automatically when configuring the `fiware` output channel.
+   */
+  private var fiwarePublisher:Option[FiwarePublisher] = None
   /*
    * The MQTT publisher to use. The [MqttPublisher] is automatically
    * initiated when configuring the `mqtt` output channel.
@@ -67,6 +73,9 @@ class OutputHandler {
   def setChannel(outputChannel:String):Unit = {
 
     outputChannel match {
+      case "fiware" =>
+        setFiwarePublisher()
+
       case "mqtt" =>
         /*
          * Select HiveMQ or Eclipse Paho MQTT client and
@@ -151,7 +160,7 @@ class OutputHandler {
 
   }
   /**
-   * This method defines the Fiware Beat specific
+   * This method defines the FiwareBeat specific
    * output handling
    */
   def sendFiwareEvent(fiwareEvent: FiwareEvent):Unit = {
@@ -219,6 +228,18 @@ class OutputHandler {
       throw new Exception(s"[OutputHandler] No output channel configured.")
 
     channel.get match {
+      case "fiware" =>
+        if (fiwarePublisher.isDefined) {
+          /*
+           * The JSON representation of the provided event
+           * `jsonObject` is transformed into an NGSI compliant
+           * entity representation
+           */
+          val event = fiwarePublisher.get.transform(jsonObject)
+          fiwarePublisher.get.publish(event)
+
+        }
+
       case "mqtt" =>
         if (mqttPublisher.isDefined) {
           /*
@@ -250,6 +271,9 @@ class OutputHandler {
 
   }
 
+  private def setFiwarePublisher():Unit = {
+    // TODO
+  }
   private def setMqttPublisher():Unit = {
 
     try {

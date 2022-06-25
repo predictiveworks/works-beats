@@ -1,6 +1,6 @@
 package de.kp.works.beats.subscriptions
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -96,9 +96,9 @@ object FiwareSubscriptions {
 
   private val registry: mutable.HashMap[String, String] = mutable.HashMap.empty[String, String]
 
-  def getSubscriptions: Seq[String] = {
+  def getSubscriptions: Seq[JsonObject] = {
 
-    val subscriptions = mutable.ArrayBuffer.empty[String]
+    val subscriptions = mutable.ArrayBuffer.empty[JsonObject]
 
     val fiwareCfg = BeatsConf.getBeatCfg(BeatsConf.FIWARE_CONF)
     val list = fiwareCfg.getList("subscriptions")
@@ -122,15 +122,15 @@ object FiwareSubscriptions {
 
   }
 
-  def register(sid: String, subscription: String): Unit = {
-    registry += sid -> subscription
+  def register(sid: String, subscription: JsonObject): Unit = {
+    registry += sid -> subscription.toString
   }
 
   def isRegistered(sid: String): Boolean = {
     registry.contains(sid)
   }
 
-  private def toSubscription(cSubscription: Config): String = {
+  private def toSubscription(cSubscription: Config):JsonObject = {
 
     val jSubscription = new JsonObject()
 
@@ -213,7 +213,7 @@ object FiwareSubscriptions {
     /* throttling */
 
     jSubscription.addProperty("throttling", cSubscription.getInt("throttling"))
-    jSubscription.toString
+    jSubscription
 
   }
 
