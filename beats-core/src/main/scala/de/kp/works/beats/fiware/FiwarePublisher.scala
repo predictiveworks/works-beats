@@ -18,9 +18,10 @@ package de.kp.works.beats.fiware
  *
  */
 
-import com.google.gson.JsonObject
+import com.google.gson.{JsonElement, JsonObject}
+import de.kp.works.beats.BeatsConf
 
-class FiwarePublisher {
+class FiwarePublisher(namespace:String) extends Fiware {
   /**
    * The broker endpoint to create & update
    * entities
@@ -29,10 +30,85 @@ class FiwarePublisher {
   private val entityGetUrl    = "/v2/entities/{id}"
   private val entityUpdateUrl = "/v2/entities/{id}/attrs"
 
-  def publish(event:JsonObject):Unit = {
+  def publish(event:JsonElement):Unit = {
 
   }
 
-  def transform(json:JsonObject):JsonObject = ???
+  def transform(json:JsonObject):JsonElement = {
+
+    namespace match {
+
+      case BeatsConf.FIWARE_NAME =>
+        /*
+         * A FIWARE entity event is re-sent to
+         * the context broker.
+         */
+        transformers.FIWARE.transform(json)
+
+      case BeatsConf.FLEET_NAME =>
+        /*
+         * Osquery log results are transformed
+         * into NGSI compliant entities
+         */
+        transformers.FLEET.transform(json)
+
+      case BeatsConf.OPCUA_NAME =>
+        /*
+         * OPC-UA events are transformed into
+         * NGSI compliant entities
+         */
+        transformers.OPCUA.transform(json)
+
+      case BeatsConf.OPENCTI_NAME =>
+        /*
+         * STIX threat events are transformed into
+         * NGSI compliant entities
+         */
+        transformers.OPENCTI.transform(json)
+
+      case BeatsConf.OSQUERY_NAME =>
+        /*
+         * Osquery log results are transformed
+         * into NGSI compliant entities
+         */
+        transformers.OSQUERY.transform(json)
+
+      case BeatsConf.THINGS_NAME =>
+        /*
+         * ThingsBoard attribute events are transformed
+         * into NGSI compliant entities
+         */
+        transformers.THINGS.transform(json)
+
+      case BeatsConf.ZEEK_NAME =>
+        /*
+         * Zeek log events are transformed into
+         * NGSI compliant entities
+         */
+        transformers.ZEEK.transform(json)
+
+      case _ =>
+        throw new Exception(s"Unknown namespace `$namespace` detected.")
+    }
+
+  }
+
+  private def entityExists(entityId:String):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + entityGetUrl.replace("{id}", entityId)
+
+    try {
+
+      val bytes = get(endpoint, headers, pooled = true)
+      extractJsonBody(bytes)
+
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
 
 }

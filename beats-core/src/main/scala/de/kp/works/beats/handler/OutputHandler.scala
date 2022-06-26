@@ -143,7 +143,10 @@ class OutputHandler {
     if (jsonObject.isDefined) sendEvent(jsonObject.get)
 
   }
-
+  /**
+   * A [FileEvent] originates either from the FleetBeat
+   * or the ZeekBeat and contains cyber monitoring events
+   */
   def sendFileEvent(event:FileEvent):Unit = {
     /*
      * Transform the received event into a serialized
@@ -270,10 +273,16 @@ class OutputHandler {
     }
 
   }
-
+  /**
+   * Helper method to retrieve the Fiware publisher
+   * that transforms and sends Beat events to the
+   * configured Fiware Context Broker
+   */
   private def setFiwarePublisher():Unit = {
-    // TODO
+    val publisher = new FiwarePublisher(namespace.get)
+    fiwarePublisher = Some(publisher)
   }
+
   private def setMqttPublisher():Unit = {
 
     try {
