@@ -19,13 +19,43 @@ package de.kp.works.beats.fiware.transformers
  *
  */
 
-import com.google.gson.{JsonElement, JsonObject}
+import com.google.gson.{JsonElement, JsonNull, JsonObject}
+import de.kp.works.beats.BeatsConf
 
 object FLEET extends BaseTransformer {
 
   override def transform(json: JsonObject): JsonElement = {
+
     val (eventType, eventData) = deserialize(json)
-    throw new Exception("not implemented yet")
+    /*
+     * The current FLEET transformation to NGSI
+     * compliant events is restricted to genuine
+     * tables
+     */
+    val table = eventType.replace(s"beat/${BeatsConf.FLEET_NAME}/", "")
+    if (table == "osquery_status") return JsonNull.INSTANCE
+    /*
+     * `eventData` is a JSON object with the following
+     * format:
+     *
+     * {
+     *  "format": "...",
+     *  "entity": {
+     *    "id": "...",
+     *    "type": "...",
+     *    "timestamp": {...},
+     *    "rows": [
+     *      {
+     *        "action": {...},
+     *        "<column>": {...},
+     *
+     *      }
+     *    ]
+     *  }
+     * }
+     */
+    eventData
+
   }
 
 }

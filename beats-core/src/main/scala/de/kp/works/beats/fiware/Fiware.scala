@@ -21,16 +21,25 @@ package de.kp.works.beats.fiware
 
 import akka.http.scaladsl.HttpsConnectionContext
 import com.typesafe.config.Config
-import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.{BeatsConf, BeatsLogging}
 import de.kp.works.beats.http.HttpConnect
 import de.kp.works.beats.ssl.SslOptions
 
-abstract class Fiware extends HttpConnect {
+abstract class Fiware extends HttpConnect with BeatsLogging {
 
   protected val fiwareCfg: Config = BeatsConf.getBeatCfg(BeatsConf.FIWARE_CONF)
 
   protected val brokerCfg: Config = fiwareCfg.getConfig("broker")
   protected val securityCfg: Config = brokerCfg.getConfig("security")
+  /**
+   * The broker endpoint to create & update
+   * entities
+   */
+  protected val entityCreateUrl = "/v2/entities"
+  protected val entityDeleteUrl = "/v2/entities/{id}"
+  protected val entityGetUrl    = "/v2/entities/{id}"
+  protected val entityUpdateUrl = "/v2/entities/{id}/attrs"
+
   /**
    * Make sure that the HTTP connection is secured,
    * if the respective configuration exists

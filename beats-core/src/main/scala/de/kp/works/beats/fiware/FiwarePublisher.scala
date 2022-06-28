@@ -21,17 +21,83 @@ package de.kp.works.beats.fiware
 import com.google.gson.{JsonElement, JsonObject}
 import de.kp.works.beats.BeatsConf
 
-class FiwarePublisher(namespace:String) extends Fiware {
-  /**
-   * The broker endpoint to create & update
-   * entities
-   */
-  private val entityCreateUrl = "/v2/entities"
-  private val entityGetUrl    = "/v2/entities/{id}"
-  private val entityUpdateUrl = "/v2/entities/{id}/attrs"
+class FiwarePublisher(namespace:String) {
 
-  def publish(event:JsonElement):Unit = {
+  def publish(eventData:JsonElement):Unit = {
+    /*
+     * `eventData` is a JSON object with the following
+     * format:
+     *
+     * {
+     *  "format": "...",
+     *  "entity": {
+     *    "id": "...",
+     *    "type": "...",
+     *    "timestamp": {...},
+     *    "rows": [
+     *      {
+     *        "action": {...},
+     *        "<column>": {...},
+     *
+     *      }
+     *    ]
+     *  }
+     * }
+     */
+    namespace match {
 
+      case BeatsConf.FIWARE_NAME =>
+        /*
+         * A FIWARE entity event is re-sent to
+         * the context broker.
+         */
+        publishers.FIWARE.publish(eventData)
+
+      case BeatsConf.FLEET_NAME =>
+        /*
+         * Osquery log results are transformed
+         * into NGSI compliant entities
+         */
+        publishers.FLEET.publish(eventData)
+
+      case BeatsConf.OPCUA_NAME =>
+        /*
+         * OPC-UA events are transformed into
+         * NGSI compliant entities
+         */
+        publishers.OPCUA.publish(eventData)
+
+      case BeatsConf.OPENCTI_NAME =>
+        /*
+         * STIX threat events are transformed into
+         * NGSI compliant entities
+         */
+        publishers.OPENCTI.publish(eventData)
+
+      case BeatsConf.OSQUERY_NAME =>
+        /*
+         * Osquery log results are transformed
+         * into NGSI compliant entities
+         */
+        publishers.OSQUERY.publish(eventData)
+
+      case BeatsConf.THINGS_NAME =>
+        /*
+         * ThingsBoard attribute events are transformed
+         * into NGSI compliant entities
+         */
+        publishers.THINGS.publish(eventData)
+
+      case BeatsConf.ZEEK_NAME =>
+        /*
+         * Zeek log events are transformed into
+         * NGSI compliant entities
+         */
+        publishers.ZEEK.publish(eventData)
+
+      case _ =>
+        throw new Exception(s"Unknown namespace `$namespace` detected.")
+    }
   }
 
   def transform(json:JsonObject):JsonElement = {
@@ -89,24 +155,6 @@ class FiwarePublisher(namespace:String) extends Fiware {
 
       case _ =>
         throw new Exception(s"Unknown namespace `$namespace` detected.")
-    }
-
-  }
-
-  private def entityExists(entityId:String):Boolean = {
-
-    val headers = Map.empty[String,String]
-    val endpoint = getBrokerUrl + entityGetUrl.replace("{id}", entityId)
-
-    try {
-
-      val bytes = get(endpoint, headers, pooled = true)
-      extractJsonBody(bytes)
-
-      true
-
-    } catch {
-      case _:Throwable => false
     }
 
   }

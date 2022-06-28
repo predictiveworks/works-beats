@@ -20,9 +20,14 @@ package de.kp.works.beats.fiware.transformers
  */
 
 import com.google.gson.{JsonElement, JsonObject}
+import de.kp.works.beats.BeatsConf
 
 object OPENCTI extends BaseTransformer {
-
+  /**
+   * OpenCTI events are specified as NGSI compliant
+   * entities, therefore the only transform action
+   * is to deserialize the provided event data.
+   */
   override def transform(json: JsonObject): JsonElement = {
     /*
      * The `json` object has the following format:
@@ -35,8 +40,33 @@ object OPENCTI extends BaseTransformer {
      * }
      */
     val (eventType, eventData) = deserialize(json)
+    val action = eventType.replace(s"beat/${BeatsConf.OPENCTI_NAME}/", "")
 
-    throw new Exception("not implemented yet")
+    if (!Seq("create", "delete", "update").contains(action))
+        throw new Exception(s"Undefined action `$action` detected.")
+
+    /*
+     * `eventData` is a JSON object with the following
+     * format:
+     *
+     * {
+     *  "format": "...",
+     *  "entity": {
+     *    "id": "...",
+     *    "type": "...",
+     *    "timestamp": {...},
+     *    "rows": [
+     *      {
+     *        "action": {...},
+     *        "<column>": {...},
+     *
+     *      }
+     *    ]
+     *  }
+     * }
+     */
+    eventData
+
   }
 
 }

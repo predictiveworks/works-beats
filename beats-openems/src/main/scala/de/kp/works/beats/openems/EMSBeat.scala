@@ -1,5 +1,6 @@
-package de.kp.works.beats.transform
-/*
+package de.kp.works.beats.openems
+
+/**
  * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,11 +19,23 @@ package de.kp.works.beats.transform
  *
  */
 
-import com.google.gson.JsonObject
-import de.kp.works.beats.events.FileEvent
+import de.kp.works.beats.BaseBeat
 
-trait FileTransform extends BeatsTransform {
+/**
+ * The [EMSBeat] is an Akka based Http(s) service that manages
+ * a WebSocket client based OpenEMS connector. Retrieved events
+ * are transformed and published to the SSE output queue.
+ */
+object EMSBeat extends BaseBeat {
 
-  def transform(event: FileEvent, namespace: String): Option[JsonObject]
+  override var programName: String = "EMSBeat"
+  override var programDesc: String = "Publish energy events as SSE."
+
+  override def launch(args: Array[String]): Unit = {
+
+    //val service = new CTIService()
+    //start(args, service)
+
+  }
 
 }

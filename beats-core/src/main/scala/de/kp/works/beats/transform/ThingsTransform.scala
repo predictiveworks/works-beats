@@ -20,7 +20,6 @@ package de.kp.works.beats.transform
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.BeatsTransform
 import de.kp.works.beats.events.MqttEvent
 
 class ThingsTransform extends BeatsTransform {

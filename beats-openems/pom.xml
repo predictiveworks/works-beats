@@ -9,22 +9,11 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>beats-tls</artifactId>
+    <artifactId>beats-openems</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
-
-        <lettuce.version>6.1.0.M1</lettuce.version>
-        <redis.spark.version>2.6.0</redis.spark.version>
-        <spark.version>2.4.7</spark.version>
-
-        <!--
-        The Scala version that has been used for testing
-        in 2.11.12
-        -->
-        <scala.binary.version>2.11</scala.binary.version>
-
     </properties>
 
     <dependencies>
@@ -35,51 +24,6 @@
             <groupId>de.kp.works</groupId>
             <artifactId>beats-core</artifactId>
             <version>0.5.0</version>
-        </dependency>
-        <!-- REDIS SPARK
-        -->
-        <dependency>
-            <groupId>com.redislabs</groupId>
-            <artifactId>spark-redis_${scala.binary.version}</artifactId>
-            <version>${redis.spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-all</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- SPARK SQL
-        -->
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-all</artifactId>
-                </exclusion>
-                <!--
-                Logging is based on Logback
-                -->
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!--  REDIS CLIENT -->
-        <dependency>
-            <groupId>io.lettuce</groupId>
-            <artifactId>lettuce-core</artifactId>
-            <version>${lettuce.version}</version>
         </dependency>
 
     </dependencies>

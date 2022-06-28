@@ -1,6 +1,7 @@
-package de.kp.works.beats.transform
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+package de.kp.works.beats.fiware.publishers
+
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,11 +19,28 @@ package de.kp.works.beats.transform
  *
  */
 
-import com.google.gson.JsonObject
-import de.kp.works.beats.events.FileEvent
+import com.google.gson.JsonElement
 
-trait FileTransform extends BeatsTransform {
-
-  def transform(event: FileEvent, namespace: String): Option[JsonObject]
-
+object THINGS extends BasePublisher {
+  /**
+   * `eventData` is a JSON object with the following
+   * format:
+   *
+   * {
+   * "format": "...",
+   * "entity": {
+   * "id": "...",
+   * "type": "...",
+   * "timestamp": {...},
+   * "rows": [
+   * {
+   * "action": {...},
+   * "<column>": {...},
+   *
+   * }
+   * ]
+   * }
+   * }
+   */
+  override def publish(eventData: JsonElement): Unit = ???
 }

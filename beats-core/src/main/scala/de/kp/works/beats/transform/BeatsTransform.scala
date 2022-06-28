@@ -1,6 +1,7 @@
-package de.kp.works.beats
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+package de.kp.works.beats.transform
+
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,10 +22,23 @@ package de.kp.works.beats
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson.JsonObject
+import de.kp.works.beats.BeatsLogging
 
 import java.util.UUID
 
-trait BeatsTransform {
+trait BeatsTransform extends BeatsLogging {
+
+  protected val ACTION    = "action"
+  protected val EVENT     = "event"
+  protected val ENTITY    = "entity"
+  protected val FORMAT    = "format"
+  protected val ID        = "id"
+  protected val METADATA  = "metadata"
+  protected val MODE      = "mode"
+  protected val ROWS      = "rows"
+  protected val TIMESTAMP = "timestamp"
+  protected val TYPE      = "type"
+  protected val VALUE     = "value"
 
   protected val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)

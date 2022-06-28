@@ -1,7 +1,7 @@
 package de.kp.works.beats.transform
 
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,7 +32,7 @@ import de.kp.works.beats.events.FileEvent
  */
 class ZeekTransform extends FileTransform {
 
-  override def transform(fileEvent:FileEvent, namespace:String):JsonObject = {
+  override def transform(fileEvent:FileEvent, namespace:String):Option[JsonObject] = {
 
     val json = new JsonObject
     /*
@@ -44,7 +44,7 @@ class ZeekTransform extends FileTransform {
     json.addProperty("type", s"beat/$namespace/${fileEvent.eventType}")
     json.addProperty("event", fileEvent.eventData)
 
-    json
+    Some(json)
 
   }
 

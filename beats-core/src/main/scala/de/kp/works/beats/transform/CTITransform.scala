@@ -1,7 +1,7 @@
 package de.kp.works.beats.transform
 
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,8 +19,7 @@ package de.kp.works.beats.transform
  *
  */
 
-import com.google.gson.JsonObject
-import de.kp.works.beats.BeatsTransform
+import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.events.SseEvent
 /**
  * The [CTITransform] class retrieves SSE events from OpenCTI
@@ -108,8 +107,8 @@ class CTITransform extends BeatsTransform {
           if (eventData.isDefined) {
 
             val sseEvent = new JsonObject
-            sseEvent.addProperty("type", eventType)
-            sseEvent.addProperty("event", eventData.get.toString)
+            sseEvent.addProperty(TYPE, eventType)
+            sseEvent.addProperty(EVENT, eventData.get.toString)
 
             Some(sseEvent)
 
@@ -122,8 +121,8 @@ class CTITransform extends BeatsTransform {
           if (eventData.isDefined) {
 
             val sseEvent = new JsonObject
-            sseEvent.addProperty("type", eventType)
-            sseEvent.addProperty("event", eventData.get.toString)
+            sseEvent.addProperty(TYPE, eventType)
+            sseEvent.addProperty(EVENT, eventData.get.toString)
 
             Some(sseEvent)
 
@@ -142,20 +141,25 @@ class CTITransform extends BeatsTransform {
           if (eventData.isDefined) {
 
             val sseEvent = new JsonObject
-            sseEvent.addProperty("type", eventType)
-            sseEvent.addProperty("event", eventData.get.toString)
+            sseEvent.addProperty(TYPE, eventType)
+            sseEvent.addProperty(EVENT, eventData.get.toString)
 
             Some(sseEvent)
 
           } else None
 
         case _ =>
-          val now = new java.util.Date().toString
-          throw new Exception(s"[ERROR] $now - Unknown event type detected: $event")
+          throw new Exception(s"Unknown event type detected: $event")
       }
 
     } catch {
-      case _:Throwable => None
+      case t:Throwable =>
+
+        val message = s"OpenCTI event transformation failed: ${t.getLocalizedMessage}"
+        error(message)
+
+        None
+
     }
 
   }
@@ -171,26 +175,49 @@ class CTITransform extends BeatsTransform {
      * represents an NGSI entity
      */
     val entityJson = new JsonObject
-    entityJson.addProperty("id", entityId)
-    entityJson.addProperty("type", entityType)
+    entityJson.addProperty(ID, entityId)
+    entityJson.addProperty(TYPE, entityType)
+    /*
+     * Add timestamp as NGSI compliant attribute
+     */
+    val timestamp = System.currentTimeMillis
+
+    val timestampJson = new JsonObject
+    timestampJson.add(METADATA, new JsonObject)
+
+    timestampJson.addProperty(TYPE, "Long")
+    timestampJson.addProperty(VALUE, timestamp)
+
+    entityJson.add(TIMESTAMP, timestampJson)
+
+    val rowJson = new JsonObject
     /*
      * Add data operation as NGSI compliant
      * attribute specification
      */
     val attrJson = new JsonObject
-    attrJson.add("metadata", new JsonObject)
+    attrJson.add(METADATA, new JsonObject)
 
-    attrJson.addProperty("type", "String")
-    attrJson.addProperty("value", "create")
+    attrJson.addProperty(TYPE, "String")
+    attrJson.addProperty(VALUE, "create")
 
-    entityJson.add("action", attrJson)
+    rowJson.add(ACTION, attrJson)
 
     val filter = Seq("id", "type")
 
     val keys = payload.keySet.filter(key => !filter.contains(key))
-    fillEntity(payload, keys, entityJson)
+    fillEntity(payload, keys, rowJson)
 
-    Some(entityJson)
+    val rowsJson = new JsonArray
+    rowsJson.add(rowJson)
+
+    entityJson.add(ROWS, rowsJson)
+
+    val resultJson = new JsonObject
+    resultJson.addProperty(FORMAT, "event")
+    resultJson.add(ENTITY, entityJson)
+
+    Some(resultJson)
 
   }
 
@@ -205,18 +232,32 @@ class CTITransform extends BeatsTransform {
      * represents an NGSI entity
      */
     val entityJson = new JsonObject
-    entityJson.addProperty("id", entityId)
-    entityJson.addProperty("type", entityType)
+    entityJson.addProperty(ID, entityId)
+    entityJson.addProperty(TYPE, entityType)
+    /*
+     * Add timestamp as NGSI compliant attribute
+     */
+    val timestamp = System.currentTimeMillis
+
+    val timestampJson = new JsonObject
+    timestampJson.add(METADATA, new JsonObject)
+
+    timestampJson.addProperty(TYPE, "Long")
+    timestampJson.addProperty(VALUE, timestamp)
+
+    entityJson.add(TIMESTAMP, timestampJson)
+
+    val rowJson = new JsonObject
     /*
      * Add data operation as attribute
      */
     val attrJson = new JsonObject
-    attrJson.add("metadata", new JsonObject)
+    attrJson.add(METADATA, new JsonObject)
 
-    attrJson.addProperty("type", "String")
-    attrJson.addProperty("value", "delete")
+    attrJson.addProperty(TYPE, "String")
+    attrJson.addProperty(VALUE, "delete")
 
-    entityJson.add("action", attrJson)
+    rowJson.add(ACTION, attrJson)
     /*
      * Extract other attributes from the
      * provided payload
@@ -224,8 +265,18 @@ class CTITransform extends BeatsTransform {
     val filter = Seq("id", "type")
     val keys = payload.keySet.filter(key => !filter.contains(key))
 
-    fillEntity(payload, keys, entityJson)
-    Some(entityJson)
+    fillEntity(payload, keys, rowJson)
+
+    val rowsJson = new JsonArray
+    rowsJson.add(rowJson)
+
+    entityJson.add(ROWS, rowsJson)
+
+    val resultJson = new JsonObject
+    resultJson.addProperty(FORMAT, "event")
+    resultJson.add(ENTITY, entityJson)
+
+    Some(resultJson)
 
   }
 
@@ -253,18 +304,33 @@ class CTITransform extends BeatsTransform {
      * represents an NGSI entity
      */
     val entityJson = new JsonObject
-    entityJson.addProperty("id", entityId)
-    entityJson.addProperty("type", entityType)
+    entityJson.addProperty(ID, entityId)
+    entityJson.addProperty(TYPE, entityType)
+    /*
+     * Add timestamp as NGSI compliant attribute
+     */
+    val timestamp = System.currentTimeMillis
+
+    val timestampJson = new JsonObject
+    timestampJson.add(METADATA, new JsonObject)
+
+    timestampJson.addProperty(TYPE, "Long")
+    timestampJson.addProperty(VALUE, timestamp)
+
+    entityJson.add(TIMESTAMP, timestampJson)
+
+    val rowJson = new JsonObject
+
     /*
      * Add data operation as attribute
      */
     val attrJson = new JsonObject
-    attrJson.add("metadata", new JsonObject)
+    attrJson.add(METADATA, new JsonObject)
 
-    attrJson.addProperty("type", "String")
-    attrJson.addProperty("value", "update")
+    attrJson.addProperty(TYPE, "String")
+    attrJson.addProperty(VALUE, "update")
 
-    entityJson.add("action", attrJson)
+    rowJson.add(ACTION, attrJson)
     /*
      * The keys are `replace`, `add` and `remove` and
      * multiple modes are supported
@@ -280,7 +346,7 @@ class CTITransform extends BeatsTransform {
         * to the transformed entity
         */
         val metaJson = new JsonObject
-        metaJson.addProperty("mode", mode)
+        metaJson.addProperty(MODE, mode)
 
         attrNames.foreach(attrName => {
           mode match {
@@ -301,7 +367,7 @@ class CTITransform extends BeatsTransform {
               if (content.nonEmpty) {
 
                 val attrJson = new JsonObject
-                attrJson.add("metadata", metaJson)
+                attrJson.add(METADATA, metaJson)
                 /*
                  * Transform content into a list of plain values
                  */
@@ -324,21 +390,21 @@ class CTITransform extends BeatsTransform {
                 if (values.size == 1) {
 
                   val attrType = basicType
-                  attrJson.addProperty("type", attrType)
+                  attrJson.addProperty(TYPE, attrType)
 
                   val attrValu = mapper.writeValueAsString(head)
-                  attrJson.addProperty("value", attrValu)
+                  attrJson.addProperty(VALUE, attrValu)
 
                 }
                 else {
                   val attrType = s"List[$basicType]"
-                  attrJson.addProperty("type", attrType)
+                  attrJson.addProperty(TYPE, attrType)
 
                   val attrValu = mapper.writeValueAsString(values)
-                  attrJson.addProperty("value", attrValu)
+                  attrJson.addProperty(VALUE, attrValu)
                 }
 
-                entityJson.add(attrName, attrJson)
+                rowJson.add(attrName, attrJson)
 
               }
             case "replace" =>
@@ -349,7 +415,7 @@ class CTITransform extends BeatsTransform {
                 .asInstanceOf[Map[String, Any]](attrName).asInstanceOf[Map[String, Any]]
 
               val attrJson = new JsonObject
-              attrJson.add("metadata", metaJson)
+              attrJson.add(METADATA, metaJson)
 
               val current = content("current")
               current match {
@@ -359,23 +425,23 @@ class CTITransform extends BeatsTransform {
                   val basicType = getBasicType(head)
 
                   val attrType = s"List[$basicType]"
-                  attrJson.addProperty("type", attrType)
+                  attrJson.addProperty(TYPE, attrType)
 
                   val attrValu = mapper.writeValueAsString(values)
-                  attrJson.addProperty("value", attrValu)
+                  attrJson.addProperty(VALUE, attrValu)
 
                 case _ =>
-                  val basicType = getBasicType(current)
 
-                  val attrType = basicType
-                  attrJson.addProperty("type", attrType)
+                  val attrType = getBasicType(current)
+                  attrJson.addProperty(TYPE, attrType)
 
                   val attrValu = mapper.writeValueAsString(current)
-                  attrJson.addProperty("value", attrValu)
+                  attrJson.addProperty(VALUE, attrValu)
 
               }
 
-              entityJson.add(attrName, attrJson)
+              rowJson.add(attrName, attrJson)
+
             case _ =>
               val now = new java.util.Date().toString
               throw new Exception(s"[ERROR] $now - Patch operation `$mode` is not supported.")
@@ -391,8 +457,18 @@ class CTITransform extends BeatsTransform {
     val filter = Seq("id", "type", "x_opencti_patch")
     val keys = payload.keySet.filter(key => !filter.contains(key))
 
-    fillEntity(payload, keys, entityJson)
-    Some(entityJson)
+    fillEntity(payload, keys, rowJson)
+
+    val rowsJson = new JsonArray
+    rowsJson.add(rowJson)
+
+    entityJson.add(ROWS, rowsJson)
+
+    val resultJson = new JsonObject
+    resultJson.addProperty(FORMAT, "event")
+    resultJson.add(ENTITY, entityJson)
+
+    Some(resultJson)
 
   }
 
