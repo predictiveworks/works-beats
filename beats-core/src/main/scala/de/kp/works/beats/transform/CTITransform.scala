@@ -19,8 +19,9 @@ package de.kp.works.beats.transform
  *
  */
 
-import com.google.gson.{JsonArray, JsonObject}
+import com.google.gson.JsonObject
 import de.kp.works.beats.events.SseEvent
+import de.kp.works.beats.transform.stix.STIXTransform
 /**
  * The [CTITransform] class retrieves SSE events from OpenCTI
  * and transforms them into an NGSI v2 compliant format.
@@ -170,52 +171,23 @@ class CTITransform extends BeatsTransform {
     val entityType = payload.getOrElse("type", "").asInstanceOf[String]
 
     if (entityId.isEmpty || entityType.isEmpty) return None
+
+    val filter = Seq(ID, TYPE)
+    val data = payload.filterKeys(k => !filter.contains(k))
     /*
-     * Build initial JSON output object, which
-     * represents an NGSI entity
+     * The subsequent processing extracts `entities`
+     * and `relationships` from the provided payload.
+     *
+     * Entities (v) and relations (e) are specified in
+     * accordance with the NGSI specification.
      */
-    val entityJson = new JsonObject
-    entityJson.addProperty(ID, entityId)
-    entityJson.addProperty(TYPE, entityType)
-    /*
-     * Add timestamp as NGSI compliant attribute
-     */
-    val timestamp = System.currentTimeMillis
-
-    val timestampJson = new JsonObject
-    timestampJson.add(METADATA, new JsonObject)
-
-    timestampJson.addProperty(TYPE, "Long")
-    timestampJson.addProperty(VALUE, timestamp)
-
-    entityJson.add(TIMESTAMP, timestampJson)
-
-    val rowJson = new JsonObject
-    /*
-     * Add data operation as NGSI compliant
-     * attribute specification
-     */
-    val attrJson = new JsonObject
-    attrJson.add(METADATA, new JsonObject)
-
-    attrJson.addProperty(TYPE, "String")
-    attrJson.addProperty(VALUE, "create")
-
-    rowJson.add(ACTION, attrJson)
-
-    val filter = Seq("id", "type")
-
-    val keys = payload.keySet.filter(key => !filter.contains(key))
-    fillEntity(payload, keys, rowJson)
-
-    val rowsJson = new JsonArray
-    rowsJson.add(rowJson)
-
-    entityJson.add(ROWS, rowsJson)
+    val (v,e) = STIXTransform.transformCreate(entityId, entityType, data)
 
     val resultJson = new JsonObject
     resultJson.addProperty(FORMAT, "event")
-    resultJson.add(ENTITY, entityJson)
+
+    if (v.isDefined) resultJson.add(ENTITIES,  v.get)
+    if (e.isDefined) resultJson.add(RELATIONS, e.get)
 
     Some(resultJson)
 
@@ -227,246 +199,51 @@ class CTITransform extends BeatsTransform {
     val entityType = payload.getOrElse("type", "").asInstanceOf[String]
 
     if (entityId.isEmpty || entityType.isEmpty) return None
+
+    val filter = Seq(ID, TYPE)
+    val data = payload.filterKeys(k => !filter.contains(k))
     /*
-     * Build initial JSON output object; this object
-     * represents an NGSI entity
+     * The subsequent processing extracts `entities` and
+     * `relationships from the provided payload
+     *
+     * Entities (v) and relations (e) are specified in
+     * accordance with the NGSI specification.
      */
-    val entityJson = new JsonObject
-    entityJson.addProperty(ID, entityId)
-    entityJson.addProperty(TYPE, entityType)
-    /*
-     * Add timestamp as NGSI compliant attribute
-     */
-    val timestamp = System.currentTimeMillis
-
-    val timestampJson = new JsonObject
-    timestampJson.add(METADATA, new JsonObject)
-
-    timestampJson.addProperty(TYPE, "Long")
-    timestampJson.addProperty(VALUE, timestamp)
-
-    entityJson.add(TIMESTAMP, timestampJson)
-
-    val rowJson = new JsonObject
-    /*
-     * Add data operation as attribute
-     */
-    val attrJson = new JsonObject
-    attrJson.add(METADATA, new JsonObject)
-
-    attrJson.addProperty(TYPE, "String")
-    attrJson.addProperty(VALUE, "delete")
-
-    rowJson.add(ACTION, attrJson)
-    /*
-     * Extract other attributes from the
-     * provided payload
-     */
-    val filter = Seq("id", "type")
-    val keys = payload.keySet.filter(key => !filter.contains(key))
-
-    fillEntity(payload, keys, rowJson)
-
-    val rowsJson = new JsonArray
-    rowsJson.add(rowJson)
-
-    entityJson.add(ROWS, rowsJson)
+    val (v,e) = STIXTransform.transformDelete(entityId, entityType, data)
 
     val resultJson = new JsonObject
     resultJson.addProperty(FORMAT, "event")
-    resultJson.add(ENTITY, entityJson)
+
+    if (v.isDefined) resultJson.add(ENTITIES,  v.get)
+    if (e.isDefined) resultJson.add(RELATIONS, e.get)
 
     Some(resultJson)
 
   }
 
   def transformUpdate(payload: Map[String, Any]): Option[JsonObject] = {
-    /*
-     * Extract patch information, determine patch operation
-     * and extract the associated attributes and values
-     */
-    val patch = {
-      if (payload.contains("x_opencti_patch")) {
-        payload("x_opencti_patch").asInstanceOf[Map[String, Any]]
-      }
-      else
-        Map.empty[String, Any]
-    }
-
-    if (patch.isEmpty) return None
 
     val entityId = payload.getOrElse("id", "").asInstanceOf[String]
     val entityType = payload.getOrElse("type", "").asInstanceOf[String]
 
     if (entityId.isEmpty || entityType.isEmpty) return None
+
+    val filter = Seq(ID, TYPE)
+    val data = payload.filterKeys(k => !filter.contains(k))
     /*
-     * Build initial JSON output object; this object
-     * represents an NGSI entity
+     * The subsequent processing extracts `entities` and
+     * `relationships from the provided payload
+     *
+     * Entities (v) and relations (e) are specified in
+     * accordance with the NGSI specification.
      */
-    val entityJson = new JsonObject
-    entityJson.addProperty(ID, entityId)
-    entityJson.addProperty(TYPE, entityType)
-    /*
-     * Add timestamp as NGSI compliant attribute
-     */
-    val timestamp = System.currentTimeMillis
-
-    val timestampJson = new JsonObject
-    timestampJson.add(METADATA, new JsonObject)
-
-    timestampJson.addProperty(TYPE, "Long")
-    timestampJson.addProperty(VALUE, timestamp)
-
-    entityJson.add(TIMESTAMP, timestampJson)
-
-    val rowJson = new JsonObject
-
-    /*
-     * Add data operation as attribute
-     */
-    val attrJson = new JsonObject
-    attrJson.add(METADATA, new JsonObject)
-
-    attrJson.addProperty(TYPE, "String")
-    attrJson.addProperty(VALUE, "update")
-
-    rowJson.add(ACTION, attrJson)
-    /*
-     * The keys are `replace`, `add` and `remove` and
-     * multiple modes are supported
-     */
-    patch.keySet.foreach(mode => {
-      if (patch.contains(mode)) {
-        /*
-         * Extract attribute names
-         */
-        val attrNames = patch(mode).asInstanceOf[Map[String, Any]].keySet
-        /*
-        * The update operation is added as metadata
-        * to the transformed entity
-        */
-        val metaJson = new JsonObject
-        metaJson.addProperty(MODE, mode)
-
-        attrNames.foreach(attrName => {
-          mode match {
-            case "add" | "remove" =>
-              /*
-               * The content of the patch message can be a list
-               * of attribute values or a list of reference maps
-               *
-               * Reference maps contain an internal OpenCTI id
-               * and a value. As the purpose of this Beat is to
-               * publish data to an external system, references
-               * to internal identifiers are skipped
-               */
-              val content = patch(mode)
-                .asInstanceOf[Map[String, Any]](attrName)
-                .asInstanceOf[List[Any]]
-
-              if (content.nonEmpty) {
-
-                val attrJson = new JsonObject
-                attrJson.add(METADATA, metaJson)
-                /*
-                 * Transform content into a list of plain values
-                 */
-                val values = content.map {
-                  /*
-                   * List values specify a plain value or a map,
-                   * where the respective value is defined as `value`
-                   * field.
-                   */
-                  case map: Map[_, Any] => map
-                    .asInstanceOf[Map[String, Any]]("value")
-                  case entry => entry
-                }
-                /*
-                 * Determine data from head element
-                 */
-                val head = values.head
-                val basicType = getBasicType(head)
-
-                if (values.size == 1) {
-
-                  val attrType = basicType
-                  attrJson.addProperty(TYPE, attrType)
-
-                  val attrValu = mapper.writeValueAsString(head)
-                  attrJson.addProperty(VALUE, attrValu)
-
-                }
-                else {
-                  val attrType = s"List[$basicType]"
-                  attrJson.addProperty(TYPE, attrType)
-
-                  val attrValu = mapper.writeValueAsString(values)
-                  attrJson.addProperty(VALUE, attrValu)
-                }
-
-                rowJson.add(attrName, attrJson)
-
-              }
-            case "replace" =>
-              /*
-               * { current, previous }
-               */
-              val content = patch(mode)
-                .asInstanceOf[Map[String, Any]](attrName).asInstanceOf[Map[String, Any]]
-
-              val attrJson = new JsonObject
-              attrJson.add(METADATA, metaJson)
-
-              val current = content("current")
-              current match {
-                case values: List[Any] =>
-
-                  val head = values.head
-                  val basicType = getBasicType(head)
-
-                  val attrType = s"List[$basicType]"
-                  attrJson.addProperty(TYPE, attrType)
-
-                  val attrValu = mapper.writeValueAsString(values)
-                  attrJson.addProperty(VALUE, attrValu)
-
-                case _ =>
-
-                  val attrType = getBasicType(current)
-                  attrJson.addProperty(TYPE, attrType)
-
-                  val attrValu = mapper.writeValueAsString(current)
-                  attrJson.addProperty(VALUE, attrValu)
-
-              }
-
-              rowJson.add(attrName, attrJson)
-
-            case _ =>
-              val now = new java.util.Date().toString
-              throw new Exception(s"[ERROR] $now - Patch operation `$mode` is not supported.")
-          }
-
-        })
-      }
-    })
-    /*
-     * Extract other attributes from the
-     * provided payload
-     */
-    val filter = Seq("id", "type", "x_opencti_patch")
-    val keys = payload.keySet.filter(key => !filter.contains(key))
-
-    fillEntity(payload, keys, rowJson)
-
-    val rowsJson = new JsonArray
-    rowsJson.add(rowJson)
-
-    entityJson.add(ROWS, rowsJson)
+    val (v,e) = STIXTransform.transformUpdate(entityId, entityType, data)
 
     val resultJson = new JsonObject
     resultJson.addProperty(FORMAT, "event")
-    resultJson.add(ENTITY, entityJson)
+
+    if (v.isDefined) resultJson.add(ENTITIES,  v.get)
+    if (e.isDefined) resultJson.add(RELATIONS, e.get)
 
     Some(resultJson)
 

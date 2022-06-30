@@ -22,6 +22,7 @@ package de.kp.works.beats.transform
 import com.google.gson.JsonObject
 import de.kp.works.beats.events.MqttEvent
 
+// Harmonize
 class ThingsTransform extends BeatsTransform {
   /*
    * Subscribing to topic v1/gateway/attributes results in messages of the format:
@@ -50,6 +51,8 @@ class ThingsTransform extends BeatsTransform {
        *   }
        * }
        */
+
+      // TODO
       val entityJson = new JsonObject
       entityJson.addProperty("id", device)
       /*
@@ -57,7 +60,7 @@ class ThingsTransform extends BeatsTransform {
        * define the `type` of the respective device.
        */
       entityJson.addProperty("type", "device")
-      fillEntity(data, data.keySet, entityJson)
+      fillRow(data, data.keySet, entityJson)
       /*
        * For compliance with other Works Beats, the SSE
        * is transformed into a unified format

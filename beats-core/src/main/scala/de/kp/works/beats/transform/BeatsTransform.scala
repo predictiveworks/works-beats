@@ -21,20 +21,25 @@ package de.kp.works.beats.transform
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.google.gson.JsonObject
+import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.BeatsLogging
 
+import java.time.{ZoneId, ZoneOffset}
 import java.util.UUID
+import scala.collection.JavaConversions.iterableAsScalaIterable
 
 trait BeatsTransform extends BeatsLogging {
 
   protected val ACTION    = "action"
+  protected val BASE_TYPE = "baseType"
   protected val EVENT     = "event"
   protected val ENTITY    = "entity"
+  protected val ENTITIES  = "entities"
   protected val FORMAT    = "format"
   protected val ID        = "id"
   protected val METADATA  = "metadata"
   protected val MODE      = "mode"
+  protected val RELATIONS = "relations"
   protected val ROWS      = "rows"
   protected val TIMESTAMP = "timestamp"
   protected val TYPE      = "type"
@@ -56,114 +61,345 @@ trait BeatsTransform extends BeatsLogging {
    * "attribute2": 42
    * }
    * }
-   *
-   * In this case, the `payload` parameter refers to `data`
    */
-  protected def fillEntity(payload: Map[String, Any], keys: Set[String], entityJson: JsonObject): Unit = {
+  protected def fillRow(payload: Map[String, Any], keys: Set[String],
+                        rowJson: JsonObject, action:String="create"): Unit = {
+
     keys.foreach(key => {
-      /*
-       * Extract the respective value from payload
-       */
-      val value = payload(key)
-      value match {
+      try {
         /*
-         * The `value` refers to a LIST attribute: the current
-         * implementation supports component (or element) data
-         * types that are either `primitive` or specify a map-
+         * Extract the respective value from payload
          */
-        case _: List[Any] =>
-          val list = value.asInstanceOf[List[Any]]
-          if (list.nonEmpty) {
-
-            val attrJson = new JsonObject
-            /*
-             * The attribute `metadata` field is introduced to
-             * be compliant with the NGSI v2 specification, but
-             * filled with an empty object
-             */
-            attrJson.add("metadata", new JsonObject)
-            /*
-             * Infer component data type from first element of
-             * the list attribute value
-             */
-            val head = list.head
-            if (head.isInstanceOf[Map[_, _]]) {
-
-              val attrType = "List[Map]"
-              attrJson.addProperty("type", attrType)
-
-              val attrValu = mapper.writeValueAsString(list)
-              attrJson.addProperty("value", attrValu)
-
-            }
-            else {
-              /*
-               * A basic data type is expected in
-               * this case
-               */
-              val basicType = getBasicType(head)
-
-              val attrType = s"List[$basicType]"
-              attrJson.addProperty("type", attrType)
-
-              val attrValu = mapper.writeValueAsString(list)
-              attrJson.addProperty("value", attrValu)
-
-            }
-            /*
-             * The contribution to the provided entity (entityJson):
-             *
-             * attribute = {
-             *    "metadata" : {},
-             *    "type": ...,
-             *    "value": ...
-             * }
-             */
-            entityJson.add(key, attrJson)
-
-          }
-        case _: Map[_, _] =>
-          val map = value.asInstanceOf[Map[String, Any]]
-          if (map.nonEmpty) {
-
-            val attrJson = new JsonObject
-            attrJson.add("metadata", new JsonObject)
-
-            val attrType = "Map"
-            attrJson.addProperty("type", attrType)
-
-            val attrValu = mapper.writeValueAsString(map)
-            attrJson.addProperty("value", attrValu)
-
-            val attrName = key
-            entityJson.add(attrName, attrJson)
-
-          }
-        case _ =>
+        val value = payload(key)
+        value match {
           /*
-           * The `value` is expected to have a [Basic]
-           * data type
+           * The `value` refers to a LIST attribute: the current
+           * implementation supports component (or element) data
+           * types that are either `primitive` or specify a map-
            */
-          if (value != null) {
+          case _: List[Any] =>
+            val list = value.asInstanceOf[List[Any]]
+            if (list.nonEmpty) {
+              /*
+               * The current implementation does not support
+               * a list of complex properties like LIST, MAP
+               *
+               * Infer component data type from first element
+               * of the list attribute value
+               */
+              val basicType = getBasicType(list.head)
+              if (list.size == 1) {
+                putValue(
+                  attrName = key,
+                  attrType = basicType,
+                  attrVal  = list.head,
+                  rowJson  = rowJson,
+                  action   = action)
 
-            val attrJson = new JsonObject
-            attrJson.add("metadata", new JsonObject)
+               } else {
+                putList(
+                  attrName = key,
+                  attrType = basicType,
+                  attrVal  = list,
+                  rowJson  = rowJson,
+                  action   = action)
+              }
 
-            val basicType = getBasicType(value)
+            }
+          case _: Map[_, _] =>
+            val map = value.asInstanceOf[Map[String, Any]]
+            if (map.nonEmpty) {
 
-            val attrType = basicType
-            attrJson.addProperty("type", attrType)
+              putMap(
+                attrName = key,
+                attrVal  = map,
+                rowJson  = rowJson,
+                action   = action)
 
-            val attrValu = mapper.writeValueAsString(value)
-            attrJson.addProperty("value", attrValu)
+            }
+          case _ =>
+            /*
+             * The `value` is expected to have a [Basic]
+             * data type
+             */
+            if (value != null) {
 
-            val attrName = key
-            entityJson.add(attrName, attrJson)
+              val basicType = getBasicType(value)
+              putValue(
+                attrName = key,
+                attrType = basicType,
+                attrVal  = value,
+                rowJson  = rowJson,
+                action   = action)
 
-          }
+            }
+        }
+
+      } catch {
+        case t:Throwable =>
+          val message = s"Extracting value for `$key` failed: ${t.getLocalizedMessage}"
+          error(message)
       }
 
     })
+
+  }
+  /**
+   * This helper method supports a map of values
+   * that refer to a basic data type.
+   *
+   * The content of the map is flattened and added
+   * to the row with concatenated attribute names
+   */
+  protected def putMap(attrName:String, attrVal:Map[String,Any],
+                       rowJson:JsonObject, action:String="create"):Unit = {
+
+    attrVal.foreach{case(k,v) =>
+      try {
+
+        val subName = s"$attrName:$k"
+        val subType = getBasicType(v)
+
+        putValue(
+          attrName = subName,
+          attrType = subType,
+          attrVal  = v,
+          rowJson  = rowJson,
+          action   = action)
+
+      } catch {
+        case t:Throwable =>
+          val message = s"Extracting `$k` from Map failed: ${t.getLocalizedMessage}"
+          error(message)
+      }
+    }
+
+  }
+  /**
+   * This helper method supports a list of values
+   * that refer to a basic data type
+   */
+  protected def putList(attrName: String, attrType: String, attrVal: List[Any],
+                        rowJson: JsonObject, action:String="create"): Unit = {
+
+    val metaJson = new JsonObject
+    metaJson.addProperty(ACTION, action)
+    metaJson.addProperty(BASE_TYPE, attrType)
+
+    val attrJson = new JsonObject
+    attrJson.add(METADATA, metaJson)
+
+    attrJson.addProperty(TYPE, "List")
+    val valueJson = new JsonArray
+
+    attrType match {
+      /*
+       * Basic data types
+       */
+      case "BigDecimal" =>
+        attrVal
+          .map(_.asInstanceOf[BigDecimal])
+          .foreach(x => valueJson.add(x))
+
+      case "Boolean" =>
+        attrVal
+          .map(_.asInstanceOf[Boolean])
+          .foreach(x => valueJson.add(x))
+
+      case "Byte" =>
+        attrVal
+          .map(_.asInstanceOf[Byte])
+          .foreach(x => valueJson.add(x))
+
+      case "Double" =>
+        attrVal
+          .map(_.asInstanceOf[Double])
+          .foreach(x => valueJson.add(x))
+
+      case "Float" =>
+        attrVal
+          .map(_.asInstanceOf[Float])
+          .foreach(x => valueJson.add(x))
+
+      case "Int" =>
+        attrVal
+          .map(_.asInstanceOf[Int])
+          .foreach(x => valueJson.add(x))
+
+      case "Long" =>
+        attrVal
+          .map(_.asInstanceOf[Long])
+          .foreach(x => valueJson.add(x))
+
+      case "Short" =>
+        attrVal
+          .map(_.asInstanceOf[Short])
+          .foreach(x => valueJson.add(x))
+
+      case "String" =>
+        attrVal
+          .map(_.asInstanceOf[String])
+          .foreach(x => valueJson.add(x))
+
+      case "Date" =>
+        attrVal.head match {
+          case _: java.sql.Date =>
+            attrVal
+              .map(_.asInstanceOf[java.sql.Date])
+              .foreach(x => valueJson.add(x.getTime))
+
+          case _: java.util.Date =>
+            attrVal
+              .map(_.asInstanceOf[java.util.Date])
+              .foreach(x => valueJson.add(x.getTime))
+
+          case _: java.time.LocalDate =>
+            attrVal.map(_.asInstanceOf[java.time.LocalDate])
+              .foreach(x =>
+                valueJson.add(
+                  x
+                    .atStartOfDay(ZoneId.of("UTC"))
+                    .toInstant.toEpochMilli))
+
+          case _: java.time.LocalDateTime =>
+            attrVal
+              .map(_.asInstanceOf[java.time.LocalDateTime])
+              .foreach(x => valueJson.add(
+                x
+                  .toInstant(ZoneOffset.UTC).toEpochMilli))
+
+          case _ => /* Do nothing */
+        }
+      case "Timestamp" =>
+        attrVal.head match {
+          case _: java.sql.Timestamp =>
+            attrVal
+              .map(_.asInstanceOf[java.sql.Timestamp])
+              .foreach(x => valueJson.add(x.getTime))
+
+          case _ => /* Do nothing */
+        }
+      /*
+       * Handpicked data types
+       */
+      case "UUID" =>
+        attrVal
+          .map(_.asInstanceOf[java.util.UUID])
+          .foreach(x => valueJson.add(x.toString))
+
+      case _ => /* Do nothing */
+
+    }
+
+    if (valueJson.nonEmpty) {
+      attrJson.add(VALUE, valueJson)
+      rowJson.add(attrName, attrJson)
+    }
+
+  }
+
+  protected def putValue(attrName: String, attrType: String, attrVal: Any,
+                         rowJson: JsonObject, action:String="create"): Unit = {
+
+    val dataType = attrType.head.toString + attrType.tail.map(x => x.toLower)
+
+    val metaJson = new JsonObject
+    metaJson.addProperty(ACTION, action)
+
+    val attrJson = new JsonObject
+    attrJson.add(METADATA, metaJson)
+
+    attrJson.addProperty(TYPE, dataType)
+
+    attrType match {
+      /*
+       * Basic data types
+       */
+      case "BigDecimal" =>
+        val value = attrVal.asInstanceOf[BigDecimal].toString
+        attrJson.addProperty(VALUE, value)
+
+      case "Boolean" =>
+        val value = attrVal.asInstanceOf[Boolean]
+        attrJson.addProperty(VALUE, value)
+
+      case "Byte" =>
+        val value = attrVal.asInstanceOf[Byte]
+        attrJson.addProperty(VALUE, value)
+
+      case "Double" =>
+        val value = attrVal.asInstanceOf[Double]
+        attrJson.addProperty(VALUE, value)
+
+      case "Float" =>
+        val value = attrVal.asInstanceOf[Float]
+        attrJson.addProperty(VALUE, value)
+
+      case "Int" =>
+        val value = attrVal.asInstanceOf[Int]
+        attrJson.addProperty(VALUE, value)
+
+      case "Long" =>
+        val value = attrVal.asInstanceOf[Long]
+        attrJson.addProperty(VALUE, value)
+
+      case "Short" =>
+        val value = attrVal.asInstanceOf[Short]
+        attrJson.addProperty(VALUE, value)
+
+      case "String" =>
+        val value = attrVal.asInstanceOf[String]
+        attrJson.addProperty(VALUE, value)
+
+      /*
+       * Datetime support
+       */
+      case "Date" =>
+        attrVal match {
+          case _: java.sql.Date =>
+            val value = attrVal.asInstanceOf[java.sql.Date]
+            attrJson.addProperty(VALUE, value.getTime)
+
+          case _: java.util.Date =>
+            val value = attrVal.asInstanceOf[java.util.Date]
+            attrJson.addProperty(VALUE, value.getTime)
+
+          case _: java.time.LocalDate =>
+            val value = attrVal
+              .asInstanceOf[java.time.LocalDate]
+              .atStartOfDay(ZoneId.of("UTC"))
+              .toInstant.toEpochMilli
+            attrJson.addProperty(VALUE, value)
+
+          case _: java.time.LocalDateTime =>
+            val value = attrVal
+              .asInstanceOf[java.time.LocalDateTime]
+              .toInstant(ZoneOffset.UTC).toEpochMilli
+            attrJson.addProperty(VALUE, value)
+
+          case _ => /* Do nothing */
+        }
+      case "Timestamp" =>
+        attrVal match {
+          case _: java.sql.Timestamp =>
+            val value = attrVal.asInstanceOf[java.sql.Timestamp]
+            attrJson.addProperty(VALUE, value.getTime)
+
+          case _ => /* Do nothing */
+        }
+      /*
+       * Handpicked data types
+       */
+      case "UUID" =>
+        val value = attrVal.asInstanceOf[java.util.UUID]
+        attrJson.addProperty(VALUE, value.toString)
+
+      case _ => /* Do nothing */
+    }
+
+    if (attrJson.has(VALUE)) {
+      rowJson.add(attrName, attrJson)
+    }
 
   }
 
@@ -173,30 +409,29 @@ trait BeatsTransform extends BeatsLogging {
        * Basic data types
        */
       case _: BigDecimal => "BigDecimal"
-      case _: Boolean => "Boolean"
-      case _: Byte => "Byte"
-      case _: Double => "Double"
-      case _: Float => "Float"
-      case _: Int => "Int"
-      case _: Long => "Long"
-      case _: Short => "Short"
-      case _: String => "String"
+      case _: Boolean    => "Boolean"
+      case _: Byte       => "Byte"
+      case _: Double     => "Double"
+      case _: Float      => "Float"
+      case _: Int        => "Int"
+      case _: Long       => "Long"
+      case _: Short      => "Short"
+      case _: String     => "String"
       /*
        * Datetime support
        */
-      case _: java.sql.Date => "Date"
-      case _: java.sql.Timestamp => "Timestamp"
-      case _: java.util.Date => "Date"
-      case _: java.time.LocalDate => "Date"
-      case _: java.time.LocalTime => "Timestamp"
+      case _: java.sql.Date           => "Date"
+      case _: java.sql.Timestamp      => "Timestamp"
+      case _: java.util.Date          => "Date"
+      case _: java.time.LocalDate     => "Date"
+      case _: java.time.LocalTime     => "Timestamp"
       case _: java.time.LocalDateTime => "Datetime"
       /*
        * Handpicked data types
        */
       case _: UUID => "UUID"
       case _ =>
-        val now = new java.util.Date().toString
-        throw new Exception(s"[ERROR] $now - Basic data type not supported.")
+        throw new Exception(s"Basic data type not supported.")
     }
 
   }
