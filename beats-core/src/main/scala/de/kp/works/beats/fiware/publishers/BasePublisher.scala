@@ -19,40 +19,94 @@ package de.kp.works.beats.fiware.publishers
  *
  */
 
-import com.google.gson.{JsonElement, JsonObject}
+import com.google.gson.{JsonArray, JsonElement, JsonObject}
 import de.kp.works.beats.BeatsLogging
 import de.kp.works.beats.fiware.Fiware
 
 abstract class BasePublisher extends Fiware with BeatsLogging {
-  /**
-   * `eventData` is a JSON object with the following
-   * format:
-   *
-   * {
-   *  "format": "...",
-   *  "entity": {
-   *    "id": "...",
-   *    "type": "...",
-   *    "timestamp": {...},
-   *    "rows": [
-   *      {
-   *        "action": {...},
-   *        "<column>": {...},
-   *
-   *      }
-   *    ]
-   *  }
-   * }
-   */
-  def publish(eventData:JsonElement):Unit
 
-  protected def entityCreate(entity:JsonObject):Boolean = {
+  val ACTION    = "action"
+  val ENTITIES  = "entities"
+  val ID        = "id"
+  val RELATIONS = "relations"
+  val ROWS      = "rows"
+  val TYPE      = "type"
+  /**
+   * The time interval the publisher waits
+   * until the next request is sent to the
+   * FIWARE context broker.
+   */
+  var THREAD_SLEEP = 200
+
+  def publish(eventData:JsonElement):Unit
+  /**
+   * A helper method to remove a certain attribute
+   * from a specific entity managed by the context
+   * broker
+   */
+  protected def attributeDelete(entityId:String, attrName:String):Boolean = {
 
     val headers = Map.empty[String,String]
-    val endpoint = getBrokerUrl + entityCreateUrl
+    val endpoint = getBrokerUrl + attributeDeleteUrl
+      .replace("{id}", entityId)
+      .replace("{attribute}", attrName)
 
     try {
-      // TODO
+
+      delete(endpoint, headers)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
+  /**
+   * This method overwrites multiple attributes of
+   * a certain entity
+   */
+  protected def attributesReplace(entityId:String, attrs:JsonObject):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + attributeReplaceUrl.replace("{id}", entityId)
+
+    try {
+
+      patch(endpoint=endpoint, headers=headers, body=attrs)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
+  /**
+   * This method create or updates multiple attributes
+   * of a certain entity
+   */
+  protected def attributesAppend(entityId:String, attrs:JsonObject):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + attributeReplaceUrl.replace("{id}", entityId)
+
+    try {
+
+      post(endpoint=endpoint, headers=headers, body=attrs)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
       true
 
     } catch {
@@ -61,6 +115,74 @@ abstract class BasePublisher extends Fiware with BeatsLogging {
 
   }
 
+  /**
+   * This method retrieves NGSI entities that point
+   * to the provided entity, i.e. respective source
+   * entities.
+   */
+  protected def entityRefs(entity:JsonObject):Option[JsonArray] = {
+
+    val entityId = entity.get(ID).getAsString
+    val entityType = entity.get(TYPE).getAsString
+
+    val condition = s"ref$entityType==$entityId"
+    val params = Map(
+      /*
+       * A query expression, composed of a list of statements
+       * separated by `;`
+       */
+      "q" -> condition)
+
+    val query = params
+      .map{case(k,v) => s"$k=$v"}.mkString("&")
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + entitiesGetUrl + s"?$query"
+
+    try {
+
+      val bytes = get(endpoint=endpoint, headers=headers)
+      val result = extractJsonBody(bytes)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
+      Some(result.getAsJsonArray)
+
+    } catch {
+      case t:Throwable =>
+        val message = s"Retrieving referencing entities failed: ${t.getLocalizedMessage}"
+        error(message)
+
+        None
+    }
+
+  }
+
+  protected def entityCreate(entityJson:JsonObject):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + entityCreateUrl
+
+    try {
+      post(endpoint=endpoint, headers=headers, body=entityJson)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
+  /**
+   * A helper method to delete an entity, identified by
+   * its `id` attribute from the context broker
+   */
   protected def entityDelete(entity:JsonObject):Boolean = {
 
     val entityId = entity.get("id").toString
@@ -69,24 +191,13 @@ abstract class BasePublisher extends Fiware with BeatsLogging {
     val endpoint = getBrokerUrl + entityDeleteUrl.replace("{id}", entityId)
 
     try {
-      // TODO
-      true
 
-    } catch {
-      case _:Throwable => false
-    }
-
-  }
-
-  protected def entityUpdate(entity:JsonObject):Boolean = {
-
-    val entityId = entity.get("id").toString
-
-    val headers = Map.empty[String,String]
-    val endpoint = getBrokerUrl + entityUpdateUrl.replace("{id}", entityId)
-
-    try {
-      // TODO
+      delete(endpoint, headers)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
       true
 
     } catch {

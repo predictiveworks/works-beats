@@ -25,12 +25,11 @@ import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
-import akka.stream.scaladsl.{FileIO, RestartSource, Sink, Source}
-import akka.stream.{ActorMaterializer, IOResult, KillSwitches}
+import akka.stream.scaladsl.{RestartSource, Sink, Source}
+import akka.stream.{ActorMaterializer, KillSwitches}
 import akka.util.{ByteString, Timeout}
 import com.google.gson._
 
-import java.nio.file.Paths
 import scala.collection.JavaConversions.asScalaSet
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -69,34 +68,6 @@ trait HttpConnect {
     pool = Http(httpSystem).superPool[NotUsed](context)
   }
 
-  def extractTextBody(source: Source[ByteString, Any]): String = {
-
-    /* Extract body as String from request entity */
-    val future = source.runFold(ByteString(""))(_ ++ _)
-    /*
-     * We do not expect to retrieve large messages
-     * and accept a blocking wait
-     */
-    val bytes = Await.result(future, timeout.duration)
-    bytes.decodeString("UTF-8")
-
-  }
-
-  def extractHtmlBody(source: Source[ByteString, Any]): String = {
-
-    /* Extract body as String from request entity */
-    val future = source.runFold(ByteString(""))(_ ++ _)
-    /*
-     * We do not expect to retrieve large messages
-     * and accept a blocking wait
-     */
-    val bytes = Await.result(future, timeout.duration)
-
-    val body = bytes.decodeString("UTF-8")
-    body
-
-  }
-
   def extractJsonBody(source: Source[ByteString, Any]): JsonElement = {
 
     /* Extract body as String from request entity */
@@ -112,35 +83,7 @@ trait HttpConnect {
 
   }
 
-  /*
-   * Extract the comma-separated lines from the HTTP response
-   * body and transform chunks into Seq[Seq]
-   *
-   * @param header    The comma-separated response contain a
-   * 								 column specification as header, that
-   * 								 differs from endpoint to endpoint
-   */
-  def extractCsvBody(body: Source[ByteString, Any], charset: String = "UTF-8"): List[String] = {
-
-    val future = body.map(byteString => {
-      /*
-       * The incoming [ByteString] can be a chunk of multiple
-       * lines; therefore, all chunks must be split first
-       */
-      byteString.decodeString(charset).trim
-
-    }).runWith(Sink.seq)
-    /*
-     * Await result
-     */
-    val result = Await.result(future, timeout.duration).asInstanceOf[Seq[String]]
-
-    val lines = result.mkString.split("\\n")
-    lines.toList
-
-  }
-
-  def delete(endpoint: String, headers: Map[String, String] = Map.empty[String, String]): Source[ByteString, Any] = {
+  def delete(endpoint: String, headers: Map[String, String] = Map.empty[String, String]):Unit = {
 
     try {
 
@@ -156,61 +99,11 @@ trait HttpConnect {
       val future: Future[HttpResponse] = Http(httpSystem).singleRequest(request)
       val response = Await.result(future, duration)
 
+      val statuses =  Seq(StatusCodes.OK, StatusCodes.NoContent)
       val status = response.status
-      if (status == StatusCodes.OK)
-        return response.entity.dataBytes
 
-      if (status == StatusCodes.NoContent)
-        return response.entity.dataBytes
-
-      throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
-
-    } catch {
-      case t: Throwable =>
-        throw new Exception(t.getLocalizedMessage)
-    }
-
-  }
-  /**
-   * This method supports a simple download request
-   * without any HTTP headers and informs the requestor
-   * about the result via the download handler
-   */
-  def download(endpoint:String, file:String):IOResult = {
-
-    val headers = Map.empty[String,String]
-    val pooled = false
-
-    download(endpoint, headers, pooled, file)
-
-  }
-
-  def download(endpoint:String,headers: Map[String, String],pooled: Boolean, file:String):IOResult = {
-
-    try {
-
-      if (file.isEmpty)
-        throw new Exception("The provided file name is empty.")
-
-      val request = {
-        if (headers.isEmpty)
-          HttpRequest(HttpMethods.GET, endpoint)
-
-        else
-          HttpRequest(HttpMethods.GET, endpoint, headers = headers.map { case (k, v) => RawHeader(k, v) }.toList)
-      }
-
-      val response =
-        if (pooled) {
-          pooledGet(request)
-
-        } else singleGet(request)
-
-      val future = Await
-        .result(response, duration)
-        .runWith(FileIO.toPath(Paths.get(file)))
-
-     Await.result(future, duration)
+      if (!statuses.contains(status))
+        throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
 
     } catch {
       case t: Throwable =>
@@ -358,14 +251,14 @@ trait HttpConnect {
 
   }
 
-  def patch(endpoint: String, headers: Map[String, String], body: JsonObject, contentType: String = "application/json"): Source[ByteString, Any] = {
+  def patch(endpoint: String, headers: Map[String, String], body: JsonObject, contentType: String = "application/json"):Unit = {
 
     try {
 
       val reqEntity = buildRequestEntity(body, contentType)
       val reqHeaders = headers.map { case (k, v) => RawHeader(k, v) }.toList
 
-      val request = HttpRequest(HttpMethods.POST, endpoint, entity = reqEntity, headers = reqHeaders)
+      val request = HttpRequest(HttpMethods.PATCH, endpoint, entity = reqEntity, headers = reqHeaders)
       val future: Future[HttpResponse] = Http(httpSystem).singleRequest(request)
 
       val response = Await.result(future, duration)
@@ -375,8 +268,6 @@ trait HttpConnect {
 
       if (!statuses.contains(status))
         throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
-
-      response.entity.dataBytes
 
     } catch {
       case t: Throwable =>
@@ -385,8 +276,7 @@ trait HttpConnect {
 
   }
 
-  def post(endpoint: String, headers: Map[String, String],
-           body: JsonObject, contentType: String = "application/json"): Source[ByteString, Any] = {
+  def post(endpoint: String, headers: Map[String, String], body: JsonObject, contentType: String = "application/json"):Unit = {
 
     try {
 
@@ -403,8 +293,6 @@ trait HttpConnect {
 
       if (!statuses.contains(status))
         throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
-
-      response.entity.dataBytes
 
     } catch {
       case t: Throwable =>
@@ -473,32 +361,23 @@ trait HttpConnect {
 
   }
 
-  def put(endpoint: String, headers: Map[String, String], body: String, cookies: Map[String, String] = Map.empty[String, String]): Source[ByteString, Any] = {
+  def put(endpoint: String, headers: Map[String, String], body: JsonObject, contentType: String = "application/json"):Unit = {
 
     try {
 
-      val reqEntity = HttpEntity(`application/json`, ByteString(body))
-      val baseHeaders = headers.map { case (k, v) => RawHeader(k, v) }.toList
-
-      val reqHeaders =
-        if (cookies.isEmpty) baseHeaders
-        else {
-          val cookieHeaders = cookies.map { case (k, v) => Cookie(k, v) }.toList
-          baseHeaders ++ cookieHeaders
-        }
+      val reqEntity = buildRequestEntity(body, contentType)
+      val reqHeaders = headers.map { case (k, v) => RawHeader(k, v) }.toList
 
       val request = HttpRequest(HttpMethods.PUT, endpoint, entity = reqEntity, headers = reqHeaders)
       val future: Future[HttpResponse] = Http(httpSystem).singleRequest(request)
 
       val response = Await.result(future, duration)
 
-      val statuses = Seq(StatusCodes.OK)
+      val statuses =  Seq(StatusCodes.OK, StatusCodes.Created, StatusCodes.NoContent)
       val status = response.status
 
       if (!statuses.contains(status))
         throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
-
-      response.entity.dataBytes
 
     } catch {
       case t: Throwable =>
@@ -506,5 +385,4 @@ trait HttpConnect {
     }
 
   }
-
 }

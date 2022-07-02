@@ -48,7 +48,7 @@ class CTITransform extends BeatsTransform {
    *
    *   {
     id: '1619436079034-0',
-    topic: 'update',
+    event: 'update',
     data: {
       markings: [],
       origin: {
@@ -184,6 +184,7 @@ class CTITransform extends BeatsTransform {
     val (v,e) = STIXTransform.transformCreate(entityId, entityType, data)
 
     val resultJson = new JsonObject
+    resultJson.addProperty(ACTION, "create")
     resultJson.addProperty(FORMAT, "event")
 
     if (v.isDefined) resultJson.add(ENTITIES,  v.get)
@@ -212,6 +213,7 @@ class CTITransform extends BeatsTransform {
     val (v,e) = STIXTransform.transformDelete(entityId, entityType, data)
 
     val resultJson = new JsonObject
+    resultJson.addProperty(ACTION, "delete")
     resultJson.addProperty(FORMAT, "event")
 
     if (v.isDefined) resultJson.add(ENTITIES,  v.get)
@@ -240,6 +242,7 @@ class CTITransform extends BeatsTransform {
     val (v,e) = STIXTransform.transformUpdate(entityId, entityType, data)
 
     val resultJson = new JsonObject
+    resultJson.addProperty(ACTION, "update")
     resultJson.addProperty(FORMAT, "event")
 
     if (v.isDefined) resultJson.add(ENTITIES,  v.get)

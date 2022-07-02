@@ -36,10 +36,13 @@ abstract class Fiware extends HttpConnect with BeatsLogging {
    * entities
    */
   protected val entityCreateUrl = "/v2/entities"
+  protected val entitiesGetUrl  = "/v2/entities"
   protected val entityDeleteUrl = "/v2/entities/{id}"
   protected val entityGetUrl    = "/v2/entities/{id}"
-  protected val entityUpdateUrl = "/v2/entities/{id}/attrs"
 
+  protected val attributeAppendUrl  = "/v2/entities/{id}/attrs"
+  protected val attributeDeleteUrl  = "/v2/entities/{id}/attrs/{attribute}"
+  protected val attributeReplaceUrl = "/v2/entities/{id}/attrs"
   /**
    * Make sure that the HTTP connection is secured,
    * if the respective configuration exists
