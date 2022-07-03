@@ -112,7 +112,6 @@ class FleetTransform extends FileTransform {
    */
   private def transformLog(oldObject:JsonObject):(String, String) = {
 
-    val entityJson = new JsonObject
     /*
      * Extract `name` (of the query) and normalize `calendarTime`:
      *
@@ -141,9 +140,7 @@ class FleetTransform extends FileTransform {
     val name = oldObject.get("name").getAsString
     val hostname = getHostname(oldObject)
 
-    val ident = s"urn:de:kp:works:fleet:$hostname:$name"
-    entityJson.addProperty(ID, ident)
-    entityJson.addProperty(TYPE, name)
+    val entityJson = newNGSIEntity(hostname, name)
 
     val calendarTime = oldObject.get("calendarTime").getAsString
     val datetime = transformCalTime(calendarTime)
@@ -199,20 +196,6 @@ class FleetTransform extends FileTransform {
        */
       val rowsJson = new JsonArray
       val rowJson = new JsonObject
-
-      val action = oldObject.get("action").getAsString
-      /*
-       * Add action as NGSI compliant attribute specification
-       * to the single entity row
-       */
-      val actionJson = new JsonObject
-      actionJson.add(METADATA, new JsonObject)
-
-      actionJson.addProperty(TYPE, "String")
-      actionJson.addProperty(VALUE, action)
-
-      rowJson.add(ACTION, actionJson)
-      rowsJson.add(rowJson)
       /*
        * Extract log event specific columns and thereby
        * assume that the columns provided are the result
@@ -224,6 +207,15 @@ class FleetTransform extends FileTransform {
       val columns = oldObject.get("columns").getAsJsonObject
       columns2Row(rowJson, columns)
 
+      val action = oldObject.get("action").getAsString
+      /*
+       * The current implementation adds the data
+       * operation associated with this relation as
+       * a temporary non-NGSI compliant field `action`
+       */
+      rowJson.addProperty(ACTION, action)
+
+      rowsJson.add(rowJson)
       entityJson.add(ROWS, rowsJson)
       /*
        * The result log format is explicitly specified
@@ -308,19 +300,9 @@ class FleetTransform extends FileTransform {
         data.foreach(columns => {
 
           val rowJson = new JsonObject
-          /*
-           * Add action as NGSI compliant
-           * attribute specification
-           */
-          val actionJson = new JsonObject
-          actionJson.add(METADATA, new JsonObject)
-
-          actionJson.addProperty(TYPE, "String")
-          actionJson.addProperty(VALUE, s"update_$action")
-
-          rowJson.add(ACTION, actionJson)
           columns2Row(rowJson,columns.getAsJsonObject )
 
+          rowJson.addProperty(ACTION, action)
           rowsJson.add(rowJson)
 
         })
@@ -413,18 +395,9 @@ class FleetTransform extends FileTransform {
       snapshot.foreach(columns => {
 
         val rowJson = new JsonObject
-        /*
-         * Add attribute as NGSI compliant specification
-         */
-        val actionJson = new JsonObject
-        actionJson.add(METADATA, new JsonObject)
-
-        actionJson.addProperty(TYPE, "String")
-        actionJson.addProperty(VALUE, "snapshot")
-
-        rowJson.add(ACTION, actionJson)
         columns2Row(rowJson,columns.getAsJsonObject )
 
+        rowJson.addProperty(ACTION, "snapshot")
         rowsJson.add(rowJson)
 
       })

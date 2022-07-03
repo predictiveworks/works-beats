@@ -139,6 +139,7 @@ object OPENCTI extends BasePublisher {
 
       relations.foreach(relation => {
         val relationJson = relation.getAsJsonObject
+        if (relationJson.has(ACTION)) relationJson.remove(ACTION)
         /*
          * {
          *  --- source entity ---
@@ -352,13 +353,13 @@ object OPENCTI extends BasePublisher {
 
           val action = attrJson.remove(ACTION).getAsString
           action match {
-            case "add" =>
+            case "add" | "create" =>
               addAttrs.add(key, attrJson)
 
             case "delete" =>
               delAttrs.add(key, attrJson)
 
-            case "replace" =>
+            case "replace" | "update" =>
               repAttrs.add(key, attrJson)
 
             case _ => /* Do nothing */

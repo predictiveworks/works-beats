@@ -49,6 +49,20 @@ trait BeatsTransform extends BeatsLogging {
   mapper.registerModule(DefaultScalaModule)
 
   /**
+   * A private helper method to transform the type
+   * of a STIX V2.1 domain object or cyber observable
+   * into an NGSI complaint representation.
+   */
+  def toCamelCase(text:String):String = {
+
+    val tokens = text.split("-")
+    tokens
+      .map(token => token.head.toUpper + token.tail)
+      .mkString
+
+  }
+
+  /**
    * Sample processing from ThingsBoard
    *
    * Subscribing to topic v1/gateway/attributes results

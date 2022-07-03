@@ -24,5 +24,29 @@ import de.kp.works.beats.events.FileEvent
 trait FileTransform extends BeatsTransform {
 
   def transform(event: FileEvent, namespace: String): Option[JsonObject]
+  /**
+   * A helper method to create an initial NGSI compliant
+   * entity from the provided Osquery hostname and table
+   */
+  protected def newNGSIEntity(entityId:String, entityType:String):JsonObject = {
+    /*
+     * Each identifier according to the NGSI-LD specification
+     * is a URN follows a standard format:
+     *
+     * urn:ngsi-ld:<entity-type>:<entity-id>
+     */
+    val ngsiType = toCamelCase(entityType)
+    val ngsiId = s"urn:ngsi-ld:$ngsiType:${cleanText(entityId)}"
 
+    val ngsiJson = new JsonObject
+    ngsiJson.addProperty(ID, ngsiId)
+    ngsiJson.addProperty(TYPE, ngsiType)
+
+    ngsiJson
+
+  }
+
+  private def cleanText(text:String):String = {
+    text.replace(".", "_")
+  }
 }

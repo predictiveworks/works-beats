@@ -27,6 +27,7 @@ abstract class BasePublisher extends Fiware with BeatsLogging {
 
   val ACTION    = "action"
   val ENTITIES  = "entities"
+  val FORMAT    = "format"
   val ID        = "id"
   val RELATIONS = "relations"
   val ROWS      = "rows"

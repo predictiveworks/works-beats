@@ -46,20 +46,6 @@ trait STIXBase extends BeatsTransform {
   val HAS_OBJECT_LABEL: String = "has-object-label"
   val HAS_OBJECT_MARKING: String = "has-object-marking"
   val HAS_OBJECT_REFERENCE: String = "has-object-reference"
-
-  /**
-   * A private helper method to transform the type
-   * of a STIX V2.1 domain object or cyber observable
-   * into an NGSI complaint representation.
-   */
-  def toCamelCase(text:String):String = {
-
-    val tokens = text.split("-")
-    tokens
-      .map(token => token.head.toUpper + token.tail)
-      .mkString
-
-  }
   /**
    * A helper method to create an initial NGSI compliant
    * entity from the provided STIX entity identifier and
