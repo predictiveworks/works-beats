@@ -83,6 +83,9 @@ class CTIService extends BeatsService(BeatsConf.OPENCTI_CONF) {
     channel match {
       case "fiware" =>
       /*
+       * The FIWARE publisher is used to send cyber threat
+       * intelligence from OpenCTI to a FIWARE context broker.
+       *
        * Do nothing as the [OutputHandler] initiates the
        * [FiwarePublisher] when setting the respective channel
        */

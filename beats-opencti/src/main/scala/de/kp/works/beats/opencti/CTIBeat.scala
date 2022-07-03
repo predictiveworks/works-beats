@@ -22,8 +22,10 @@ import de.kp.works.beats.BaseBeat
 
 /**
  * The [CTIBeat] is an Akka based Http(s) service that manages
- * an SSE client based OpenCTI connector. Retrieved events
- * are transformed and published to the SSE output queue.
+ * an SSE client based OpenCTI connector. Retrieved events are
+ * transformed into an NGSI compliant format and then published
+ * to a FIWARE context broker, an MQTT broker and via the SSE
+ * output queue.
  *
  * An SSE client like [Works. Stream] listens to the published
  * events and initiates subsequent data processing.
