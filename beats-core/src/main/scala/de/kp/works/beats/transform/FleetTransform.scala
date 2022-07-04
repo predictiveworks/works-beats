@@ -50,13 +50,13 @@ object FleetFormatUtil {
 }
 class FleetTransform extends FileTransform {
 
-  override def transform(event:FileEvent, namespace:String):Option[JsonObject] = {
+  override def transform(fileEvent:FileEvent, namespace:String):Option[JsonObject] = {
     /*
      * The Osquery (Fleet) Manager creates and updates 2 different
      * files, result.log and status.log; the file name is used as
      * event type.
      */
-    val format = FleetFormatUtil.fromFile(event.eventType)
+    val format = FleetFormatUtil.fromFile(fileEvent.eventType)
 
     format match {
       case RESULT =>
@@ -68,7 +68,7 @@ class FleetTransform extends FileTransform {
          * The log line transformed into a more meaningful format
          * and the query name is used as the event type
          */
-        val log = JsonParser.parseString(event.eventData).getAsJsonObject
+        val log = JsonParser.parseString(fileEvent.eventData).getAsJsonObject
         val (table, batch) = transformLog(log)
 
         val json = new JsonObject
@@ -89,7 +89,7 @@ class FleetTransform extends FileTransform {
         val json = new JsonObject
 
         json.addProperty(TYPE, s"beat/$namespace/osquery_status")
-        json.addProperty(EVENT, event.eventData)
+        json.addProperty(EVENT, fileEvent.eventData)
 
         Some(json)
 

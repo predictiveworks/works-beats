@@ -53,9 +53,9 @@ trait BeatsTransform extends BeatsLogging {
    * of a STIX V2.1 domain object or cyber observable
    * into an NGSI complaint representation.
    */
-  def toCamelCase(text:String):String = {
+  def toCamelCase(text:String, separator:String="-"):String = {
 
-    val tokens = text.split("-")
+    val tokens = text.split(separator)
     tokens
       .map(token => token.head.toUpper + token.tail)
       .mkString
@@ -197,10 +197,10 @@ trait BeatsTransform extends BeatsLogging {
                         rowJson: JsonObject, action:String="create"): Unit = {
 
     val metaJson = new JsonObject
-    metaJson.addProperty(ACTION, action)
     metaJson.addProperty(BASE_TYPE, attrType)
 
     val attrJson = new JsonObject
+    attrJson.addProperty(ACTION, action)
     attrJson.add(METADATA, metaJson)
 
     attrJson.addProperty(TYPE, "List")
@@ -317,11 +317,9 @@ trait BeatsTransform extends BeatsLogging {
 
     val dataType = attrType.head.toString + attrType.tail.map(x => x.toLower)
 
-    val metaJson = new JsonObject
-    metaJson.addProperty(ACTION, action)
-
     val attrJson = new JsonObject
-    attrJson.add(METADATA, metaJson)
+    attrJson.addProperty(ACTION, action)
+    attrJson.add(METADATA, new JsonObject)
 
     attrJson.addProperty(TYPE, dataType)
 
