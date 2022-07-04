@@ -42,5 +42,6 @@ object THINGS extends BasePublisher {
    * }
    * }
    */
-  override def publish(eventData: JsonElement): Unit = ???
+  override def publish(eventData: JsonElement): Unit =
+    throw new Exception("not implemented yet")
 }

@@ -74,7 +74,7 @@ abstract class BasePublisher extends Fiware with BeatsLogging {
   protected def attributesReplace(entityId:String, attrs:JsonObject):Boolean = {
 
     val headers = Map.empty[String,String]
-    val endpoint = getBrokerUrl + attributeReplaceUrl.replace("{id}", entityId)
+    val endpoint = getBrokerUrl + attributesReplaceUrl.replace("{id}", entityId)
 
     try {
 
@@ -98,7 +98,31 @@ abstract class BasePublisher extends Fiware with BeatsLogging {
   protected def attributesAppend(entityId:String, attrs:JsonObject):Boolean = {
 
     val headers = Map.empty[String,String]
-    val endpoint = getBrokerUrl + attributeReplaceUrl.replace("{id}", entityId)
+    val endpoint = getBrokerUrl + attributesAppendUrl.replace("{id}", entityId)
+
+    try {
+
+      post(endpoint=endpoint, headers=headers, body=attrs)
+      /*
+       * Wait between every sent request to balance
+       * the access rate
+       */
+      Thread.sleep(THREAD_SLEEP)
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
+  /**
+   * This method create or updates multiple attributes
+   * of a certain entity
+   */
+  protected def attributesUpdate(entityId:String, attrs:JsonObject):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = getBrokerUrl + attributesUpdateUrl.replace("{id}", entityId)
 
     try {
 

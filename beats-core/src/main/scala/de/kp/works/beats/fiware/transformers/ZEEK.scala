@@ -24,8 +24,14 @@ import com.google.gson.{JsonElement, JsonObject}
 object ZEEK extends BaseTransformer {
 
   override def transform(json: JsonObject): JsonElement = {
-    val (eventType, eventData) = deserialize(json)
-    throw new Exception("not implemented yet")
+    val (_, eventData) = deserialize(json)
+    /*
+     * Zeek log events are transformed into an NGSI compliant
+     * entity representation by the ZeekBeat. Therefore, at this
+     * stage, there is nothing to additionally transform before
+     * publishing.
+     */
+    eventData
   }
 
 }
