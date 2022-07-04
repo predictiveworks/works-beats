@@ -19,48 +19,25 @@ package de.kp.works.beats.fleet
  *
  */
 
+import de.kp.works.beats.BeatsReceiver
 import de.kp.works.beats.file.FileMonitor
 
-import java.util.concurrent.{ExecutorService, Executors}
+class FleetReceiver(monitor:FileMonitor, numThreads:Int = 1) extends BeatsReceiver(numThreads) {
 
-class FleetReceiver(monitor:FileMonitor, numThreads:Int = 1) {
+  override def getWorker:Runnable = {
 
-  private var executorService:ExecutorService = _
-
-  def start():Unit = {
-    /*
-     * Wrap connector and output handler in a runnable
-     */
-    val worker = new Runnable {
+    new Runnable {
 
       override def run(): Unit = {
 
-        val now = new java.util.Date().toString
-        println(s"[FleetReceiver] $now - Receiver worker started.")
+        val message = s"Fleet Receiver worker started."
+        info(message)
 
         monitor.start()
 
       }
-    }
 
-    try {
-
-      /* Initiate stream execution */
-      executorService = Executors.newFixedThreadPool(numThreads)
-      executorService.execute(worker)
-
-    } catch {
-      case e:Exception => executorService.shutdown()
     }
 
   }
-
-  def stop():Unit = {
-
-    /* Stop listening to the Fleet log events stream  */
-    executorService.shutdown()
-    executorService.shutdownNow()
-
-  }
-
 }
