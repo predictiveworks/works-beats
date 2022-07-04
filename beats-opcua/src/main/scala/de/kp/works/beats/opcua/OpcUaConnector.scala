@@ -1,6 +1,7 @@
 package de.kp.works.beats.opcua
-/*
- * Copyright (c) 2019 - 2021 Dr. Krusche & Partner PartG. All rights reserved.
+
+/**
+ * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +22,7 @@ package de.kp.works.beats.opcua
 import com.typesafe.config.Config
 import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.handler.OutputHandler
+import de.kp.works.beats.opcua.security.SecurityUtil
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.config.{OpcUaClientConfig, OpcUaClientConfigBuilder}
@@ -106,11 +108,13 @@ class OpcUaConnector() {
    * Retrieve security policy that is expected to be
    * implemented at the endpoint (see endpoint filter)
    */
-  private val securityPolicy = OpcUaSecurity.getSecurityPolicy
-  if (securityPolicy != null && securityPolicy == SecurityPolicy.Aes256_Sha256_RsaPss)
-    Security.addProvider(new BouncyCastleProvider)
+  private val securityPolicy = SecurityUtil.getSecurityPolicy
+  if (securityPolicy.nonEmpty && securityPolicy.get == SecurityPolicy.Aes256_Sha256_RsaPss) {
 
-  private val opcUaSecurity = new OpcUaSecurity(securityPolicy)
+    Security.addProvider(new BouncyCastleProvider)
+    SecurityUtil.setSecurityPolicy(securityPolicy.get)
+
+  }
   /*
    * Initialize subscription listener to monitor
    * subscription status
@@ -328,7 +332,7 @@ class OpcUaConnector() {
     }
   }
 
-  private def createClient():OpcUaClient = {
+  private def createClient(): OpcUaClient = {
 
     val selectEndpoint = new Function[java.util.List[EndpointDescription], Optional[EndpointDescription]] {
       override def apply(endpoints: java.util.List[EndpointDescription]): Optional[EndpointDescription] = {
@@ -347,8 +351,8 @@ class OpcUaConnector() {
           .setApplicationName(LocalizedText.english(OpcUaUtils.APPLICATION_NAME))
           .setApplicationUri(OpcUaUtils.APPLICATION_URI)
           .setIdentityProvider(identityProvider)
-          .setKeyPair(opcUaSecurity.getClientKeyPair)
-          .setCertificate(opcUaSecurity.getClientCertificate)
+          .setKeyPair(SecurityUtil.getClientKeyPair.get)
+          .setCertificate(SecurityUtil.getClientCertificate.get)
           .setConnectTimeout(UInteger.valueOf(connectTimeout))
           .setRequestTimeout(UInteger.valueOf(requestTimeout))
           .setKeepAliveFailuresAllowed(UInteger.valueOf(keepAliveFailuresAllowed))
@@ -366,7 +370,7 @@ class OpcUaConnector() {
    * the refers to configured policy.
    */
   private def endpointFilter(e:EndpointDescription):Boolean = {
-    securityPolicy == null || securityPolicy.getUri.equals(e.getSecurityPolicyUri)
+    securityPolicy.isEmpty || securityPolicy.get.getUri.equals(e.getSecurityPolicyUri)
   }
 
   private def endpointUpdater(e:EndpointDescription ):EndpointDescription = {
