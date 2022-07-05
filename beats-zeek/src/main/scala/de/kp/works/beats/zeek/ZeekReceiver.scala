@@ -1,6 +1,6 @@
 package de.kp.works.beats.zeek
-/*
- * Copyright (c) 20129 - 2021 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,48 +18,21 @@ package de.kp.works.beats.zeek
  *
  */
 
+import de.kp.works.beats.BeatsReceiver
 import de.kp.works.beats.file.FileMonitor
 
-import java.util.concurrent.{ExecutorService, Executors}
+class ZeekReceiver(monitor:FileMonitor, numThreads:Int = 1)
+  extends BeatsReceiver(numThreads) {
 
-class ZeekReceiver(monitor:FileMonitor, numThreads:Int = 1) {
+  def getWorker: Runnable = new Runnable {
 
-  private var executorService:ExecutorService = _
+    override def run(): Unit = {
+      val message = s"Zeek Receiver worker started."
+      info(message)
 
-  def start():Unit = {
-    /*
-     * Wrap connector and output handler in a runnable
-     */
-    val worker = new Runnable {
+      monitor.start()
 
-      override def run(): Unit = {
-
-        val now = new java.util.Date().toString
-        println(s"[ZeekReceiver] $now - Receiver worker started.")
-
-        monitor.start()
-
-      }
     }
-
-    try {
-
-      /* Initiate stream execution */
-      executorService = Executors.newFixedThreadPool(numThreads)
-      executorService.execute(worker)
-
-    } catch {
-      case _:Exception => executorService.shutdown()
-    }
-
-  }
-
-  def stop():Unit = {
-
-    /* Stop listening to the Zeek log events stream  */
-    executorService.shutdown()
-    executorService.shutdownNow()
-
   }
 
 }
