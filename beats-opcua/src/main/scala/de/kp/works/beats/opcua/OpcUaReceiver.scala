@@ -1,6 +1,6 @@
 package de.kp.works.beats.opcua
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,58 +18,28 @@ package de.kp.works.beats.opcua
  *
  */
 
+import de.kp.works.beats.BeatsReceiver
 import de.kp.works.beats.handler.OutputHandler
 
-import java.util.concurrent.{ExecutorService, Executors}
+class OpcUaReceiver(outputHandler:OutputHandler, numThreads:Int = 1)
+  extends BeatsReceiver(numThreads) {
 
-class OpcUaReceiver(
-   outputHandler:OutputHandler,
-   /* The number of threads to use for processing */
-   numThreads:Int = 1) {
-
-  private val opcUaConnector = new OpcUaConnector()
-  private var executorService:ExecutorService = _
-
-  def start():Unit = {
+  def getWorker:Runnable = new Runnable {
     /*
-     * Wrap connector and output handler in a runnable
+     * Initialize the connector to the
+     * OPC-UA server
      */
-    val worker: Runnable = new Runnable {
-      /*
-       * Initialize the connector to the
-       * OPC-UA server
-       */
-      val connector = new OpcUaConnector()
-      opcUaConnector.setOutputHandler(outputHandler)
+    val connector = new OpcUaConnector()
+    connector.setOutputHandler(outputHandler)
 
-      override def run(): Unit = {
+    override def run(): Unit = {
 
-        val now = new java.util.Date().toString
-        println(s"[OpcUaReceiver] $now - Receiver worker started.")
+      val message = s"OPC-UA Receiver worker started."
+      info(message)
 
-        connector.start()
+      connector.start()
 
-      }
     }
-
-    try {
-
-      /* Initiate stream execution */
-      executorService = Executors.newFixedThreadPool(numThreads)
-      executorService.execute(worker)
-
-    } catch {
-      case _:Exception => executorService.shutdown()
-    }
-
-  }
-
-  def stop():Unit = {
-
-    /* Stop listening to the OpenCTI events stream  */
-    executorService.shutdown()
-    executorService.shutdownNow()
-
   }
 
 }

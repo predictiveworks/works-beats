@@ -1,6 +1,6 @@
 package de.kp.works.beats.opcua
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -38,7 +38,12 @@ class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
   }
 
   private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
-
+    /*
+     * OUTPUT (WRITE) DIRECTION
+     *
+     * The current implementation of [OpcUaBeat] supports
+     * `fiware`, `mqtt` and `sse` as output channel
+     */
     val outputHandler:OutputHandler = new OutputHandler
     outputHandler.setNamespace(BeatsConf.OPCUA_NAME)
 
@@ -46,6 +51,11 @@ class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
     outputHandler.setChannel(channel)
 
     channel match {
+      case "fiware" =>
+      /*
+       * Do nothing as the [OutputHandler] initiates the
+       * [FiwarePublisher] when setting the respective channel
+       */
       case "mqtt" =>
       /*
        * Do nothing as the [OutputHandler] initiates the

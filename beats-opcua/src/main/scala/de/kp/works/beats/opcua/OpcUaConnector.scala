@@ -20,14 +20,13 @@ package de.kp.works.beats.opcua
  */
 
 import com.typesafe.config.Config
-import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.opcua.security.SecurityUtil
+import de.kp.works.beats.{BeatsConf, BeatsLogging}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.config.{OpcUaClientConfig, OpcUaClientConfigBuilder}
-import org.eclipse.milo.opcua.sdk.client.api.identity.{AnonymousProvider, UsernameProvider}
-import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscriptionManager
+import org.eclipse.milo.opcua.sdk.client.api.subscriptions.{UaSubscription, UaSubscriptionManager}
 import org.eclipse.milo.opcua.sdk.client.api.{ServiceFaultListener, UaClient}
 import org.eclipse.milo.opcua.stack.core.UaException
 import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy
@@ -35,21 +34,13 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger
 import org.eclipse.milo.opcua.stack.core.types.builtin.{DateTime, LocalizedText, StatusCode}
 import org.eclipse.milo.opcua.stack.core.types.structured.{EndpointDescription, ServiceFault}
 import org.eclipse.milo.opcua.stack.core.util.EndpointUtil
-import org.slf4j.LoggerFactory
 
 import java.security.Security
 import java.util.Optional
-import java.util.concurrent.{CompletableFuture, Future}
 import java.util.function.{BiConsumer, Consumer, Function}
-import scala.annotation.tailrec
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
-class OpcUaConnector() {
-
-  private val LOGGER = LoggerFactory.getLogger(classOf[OpcUaConnector])
-
-  import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription
+class OpcUaConnector() extends BeatsLogging {
 
   private var opcUaClient:OpcUaClient = _
   private var subscription:UaSubscription = _
@@ -58,36 +49,8 @@ class OpcUaConnector() {
 
   private val opcUaCfg: Config = BeatsConf.getBeatCfg(BeatsConf.OPCUA_CONF)
 
-  private val identityProvider =
-    if (opcUaCfg.hasPath("userCredentials")) {
-
-      val userCredentials = opcUaCfg.getConfig("userCredentials")
-      val userName = userCredentials.getString("userName")
-      val userPass = userCredentials.getString("userPass")
-
-      new UsernameProvider(userName, userPass)
-
-    }
-    else new AnonymousProvider
-
-  private val subscribeOnStartup = {
-
-    val topics = mutable.ArrayBuffer.empty[String]
-
-    val values = opcUaCfg.getList("subscribeOnStartup")
-    val size = values.size
-    for (i <- 0 until size) {
-
-      val cval = values.get(i)
-
-      val topic = cval.asInstanceOf[String]
-      topics += topic
-
-    }
-
-    topics.toList
-
-  }
+  private val identityProvider = OpcUaOptions.getIdentityProvider
+  private val subscribeOnStartup = OpcUaOptions.getTopics
 
   private val receiverCfg:Config = opcUaCfg.getConfig("receiver")
 
@@ -103,7 +66,8 @@ class OpcUaConnector() {
   private val keepAliveFailuresAllowed = receiverCfg.getInt("keepAliveFailuresAllowed")
   private val subscriptionSamplingInterval = receiverCfg.getDouble("subscriptionSamplingInterval")
 
-  private val retryWait = 5000
+  private val retryWait  = 5000
+  private val maxRetries = 10
   /*
    * Retrieve security policy that is expected to be
    * implemented at the endpoint (see endpoint filter)
@@ -116,8 +80,9 @@ class OpcUaConnector() {
 
   }
   /*
-   * Initialize subscription listener to monitor
-   * subscription status
+   * Initialize subscription listener to determine
+   * whether a subscription transfer failed, and
+   * in this case, re-create the subscription
    */
   private val subscriptionListener = new UaSubscriptionManager.SubscriptionListener() {
 
@@ -126,19 +91,19 @@ class OpcUaConnector() {
     }
 
     override def onStatusChanged(subscription: UaSubscription, status: StatusCode): Unit = {
-      LOGGER.info("Status changed: " + status.toString)
+      info("Status changed: " + status.toString)
     }
 
     override def onPublishFailure(exception: UaException): Unit = {
-      LOGGER.warn("Publish failure: " + exception.getMessage)
+      warn("Publish failure: " + exception.getMessage)
     }
 
     override def onNotificationDataLost(subscription: UaSubscription): Unit = {
-      LOGGER.warn("Notification data lost: " + subscription.getSubscriptionId)
+      warn("Notification data lost: " + subscription.getSubscriptionId)
     }
 
     override def onSubscriptionTransferFailed(subscription: UaSubscription, statusCode: StatusCode): Unit = {
-      LOGGER.warn("Subscription transfer failed: " + statusCode.toString)
+      warn("Subscription transfer failed: " + statusCode.toString)
       /*
        * Re-create subscription
        */
@@ -152,17 +117,17 @@ class OpcUaConnector() {
       .getSubscriptionManager
       .createSubscription(subscriptionSamplingInterval)
       .whenCompleteAsync(new BiConsumer[UaSubscription, Throwable] {
-        override def accept(s: UaSubscription, e: Throwable): Unit = {
-          if (e == null) {
+        override def accept(s: UaSubscription, t: Throwable): Unit = {
+          if (t == null) {
             subscription = s
             try resubscribe()
             catch {
-              case ex: Exception =>
-                LOGGER.error("Unable to re-subscribe. Fail with: " + ex.getLocalizedMessage)
+              case ex: Throwable =>
+                error(s"Re-subscription failed: ${ex.getLocalizedMessage}")
             }
           }
           else {
-            LOGGER.error("Unable to create a subscription. Fail with: " + e.getLocalizedMessage)
+            error(s"Create a subscription failed: ${t.getLocalizedMessage}")
           }
         }
       })
@@ -195,13 +160,12 @@ class OpcUaConnector() {
    * This is the main method to connect to the OPC-UA
    * server and subscribe.
    */
-  def start():Future[Boolean] = {
+  def start():Boolean = {
 
-    val future = new CompletableFuture[Boolean]()
+    var success = false
     try {
 
-      val res = connect().get()
-      if (res) {
+      if (connect()) {
         subscribeOnStartup.foreach(pattern => {
           /*
            * node/ns=2;s=ExampleDP_Float.ExampleDP_Arg1
@@ -213,123 +177,128 @@ class OpcUaConnector() {
 
             val subscriber = new OpcUaSubscriber(opcUaClient, subscription, outputHandler)
             try {
-              future.complete(subscriber.subscribeTopic(id, topic).get())
+              /*
+               * This subscriber method registers the provided
+               * topic in the `OpcUaRegistry`
+               */
+              success = subscriber.subscribeTopic(id, topic)
 
             } catch {
               case t:Throwable =>
-                LOGGER.error("Starting OPC-UA connection failed with: " + t.getLocalizedMessage)
-                future.complete(false);
+                error(s"Starting OPC-UA connection failed: ${t.getLocalizedMessage}")
               }
           }
         })
       }
-      else
-        future.complete(false)
 
     } catch {
       case t:Throwable =>
-        LOGGER.error("Starting OPC-UA connection failed with: " + t.getLocalizedMessage)
-        future.complete(false)
+        error(s"Starting OPC-UA connection failed: ${t.getLocalizedMessage}")
     }
 
-    future
+    success
+
   }
+  /**
+   * This method create an OPC-UA client and
+   * connects the client to the OPC-UA server.
+   *
+   * Fault & subscription listener are assigned
+   * to the client and finally the configured
+   * subscriptions are set
+   */
+  def connect():Boolean = {
 
-  def connect():Future[Boolean] = {
-
-    val future = new CompletableFuture[Boolean]()
     try {
       /*
        * STEP #1: Create OPC-UA client
        */
-      val result = createClientAsync().get()
-      if (!result) {
-        future.complete(false)
-      }
-      else {
-        /*
-         * STEP #2: Connect to OPC-UA server
-         */
-        val result = connectClientAsync().get()
-        if (!result) {
-          future.complete(false)
+      if (!createClientWithRetry) return false
+      /*
+       * STEP #2: Connect to OPC-UA server
+       */
+      if (!connectClientWithRetry) return false
+      /*
+       * STEP #3: Add fault & subscription listener
+       */
+      opcUaClient.addFaultListener(new ServiceFaultListener() {
+        override def onServiceFault(serviceFault: ServiceFault): Unit = {
+          warn(s"Fault listener returned: ${serviceFault.toString}")
         }
-        else {
-          /*
-           * STEP #3: Add fault & subscription listener
-           */
-          opcUaClient.addFaultListener(new ServiceFaultListener() {
-            override def onServiceFault(serviceFault: ServiceFault): Unit = {
-              LOGGER.warn("[OPC-UA FAULT] " + serviceFault.toString)
-            }
-          })
+      })
 
-          opcUaClient.getSubscriptionManager
-            .addSubscriptionListener(subscriptionListener)
+      opcUaClient.getSubscriptionManager
+        .addSubscriptionListener(subscriptionListener)
 
-          /*
-           * STEP #4: Create subscription
-           */
-          createSubscription()
-          future.complete(true)
-
-        }
-      }
+      /*
+       * STEP #4: Create subscription
+       */
+      createSubscription()
+      true
 
     } catch {
-      case _:Throwable =>
-        future.complete(false)
+      case t:Throwable =>
+        val message = s"Connecting to OPC-UA server failed: ${t.getLocalizedMessage}"
+        error(message)
+
+        false
     }
 
-    future
   }
 
-  def disconnect():Future[Boolean] = {
+  def disconnect():Boolean = {
 
-    val future = new CompletableFuture[Boolean]()
+    var success = false
     opcUaClient
       .disconnect()
       .thenAccept(new Consumer[OpcUaClient] {
         override def accept(c: OpcUaClient): Unit = {
-          future.complete(true)
+          success = true
         }
-      })
+      }).get
 
-    future
+    success
 
   }
 
-  def shutdown():Future[Boolean] = {
-    disconnect()
-  }
-
-  private def createClientAsync():Future[Boolean] = {
-    val future = new CompletableFuture[Boolean]()
-    createClientWithRetry(future)
-    future
-  }
-
+  def shutdown():Boolean = disconnect()
   /**
    * This method creates an OPC-UA client with a retry mechanism
    * in case an error occurred; the current implementation retries
    * after 5000 ms with a maximum of 10 retries
    */
-  @tailrec
-  private def createClientWithRetry(future:CompletableFuture[Boolean]):Unit = {
+  private def createClientWithRetry:Boolean = {
 
-    try {
-      opcUaClient = createClient()
-      future.complete(true)
+    var success = false
 
-    } catch {
-      case _:UaException =>
-        Thread.sleep(retryWait)
-        createClientWithRetry(future)
+    var retry = true
+    var numRetry = 0
 
-      case _:Exception =>
-      future.complete(false)
+    while (retry) {
+
+      try {
+        opcUaClient = createClient()
+
+        retry   = false
+        success = true
+
+      } catch {
+        case _:Throwable =>
+          numRetry += 1
+          if (numRetry < maxRetries)
+            Thread.sleep(retryWait)
+
+          else {
+            retry   = false
+            success = false
+          }
+
+      }
 
     }
+
+    success
+
   }
 
   private def createClient(): OpcUaClient = {
@@ -384,7 +353,7 @@ class OpcUaConnector() {
      */
     val parts1 = endpointUrl.split("://")
     if (parts1.length != 2) {
-      LOGGER.warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
+      warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
       return e
     }
     val parts2 = parts1(1).split(":")
@@ -395,45 +364,49 @@ class OpcUaConnector() {
       EndpointUtil.updateUrl(e, parts2(0), Integer.parseInt(parts2(1)))
     }
     else {
-      LOGGER.warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
+      warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
       e
     }
   }
 
-  private def connectClientAsync():Future[Boolean] = {
-    val future = new CompletableFuture[Boolean]()
-    connectClientWithRetry(future)
-    future
-  }
+  private def connectClientWithRetry:Boolean = {
 
-  private def connectClientWithRetry(future:CompletableFuture[Boolean]):Unit = {
+    if (opcUaClient == null) return false
 
-    if (opcUaClient == null) {
-      future.complete(false)
+    var success = false
 
-    } else {
-      opcUaClient
-        .connect()
-        .whenComplete(new BiConsumer[UaClient, Throwable] {
-          override def accept(c: UaClient, t: Throwable): Unit = {
-            if (t == null) {
-              future.complete(true)
+    var retry = true
+    var numRetry = 0
+
+    while (retry) {
+
+      try {
+        opcUaClient
+          .connect
+          .whenComplete(new BiConsumer[UaClient, Throwable] {
+            override def accept(c: UaClient, t: Throwable): Unit = {
+              if (t != null) throw t
             }
-            else {
-              try {
-                Thread.sleep(retryWait)
-                connectClientWithRetry(future)
+          }).get
 
-              } catch {
-                case _:Throwable =>
-                  future.complete(false)
-              }
+        retry   = false
+        success = true
 
-            }
+      } catch {
+        case _:Throwable =>
+          numRetry += 1
+          if (numRetry < maxRetries)
+            Thread.sleep(retryWait)
+
+          else {
+            retry   = false
+            success = false
           }
-        })
+      }
+
     }
 
-  }
+    success
 
+  }
 }
