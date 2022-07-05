@@ -149,6 +149,12 @@ object OpcUaTransform {
   private def parse1(text: String): OpcUaTopic = {
 
     try {
+      /*
+       * The node starts with the prefix opc/{id},
+       * and the OPC-UA namespace reference (ns)
+       * is specified as a number in [0..9], where
+       * ns=0 describes the default namespace.
+       */
       val regex = "opc\\/(\\w+)\\/Node\\/ns=([0-9].*);s=(.*)"
 
       val pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
@@ -171,6 +177,21 @@ object OpcUaTransform {
       if (addr1 == null || addr2 == null || systemName == null)
         throw new Exception("Regex does not match.")
 
+      /*
+       * The address combines the namespace reference
+       * index, the node type and the respective value
+       *
+       * ns=<namespace-index>;<type>=<value>
+
+       * Currently there are 4 node types defined:
+       *
+       * - i: Numeric (value is a UInteger)
+       * - s: String (value is a String)
+       * - g: Guid (value is a Guid/UUID)
+       * - b: Opaque (value is ByteString)
+       *
+       * This [OpcUaBeat] supports string types only
+       */
       val address = s"ns=$addr1;s=$addr2"
       OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.NodeId, systemName = systemName)
 

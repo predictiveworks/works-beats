@@ -19,8 +19,8 @@ package de.kp.works.beats.opcua
  */
 
 import com.typesafe.config.Config
-import de.kp.works.beats.{BeatsConf, BeatsLogging}
 import de.kp.works.beats.handler.OutputHandler
+import de.kp.works.beats.{BeatsConf, BeatsLogging}
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.{UaMonitoredItem, UaSubscription}
 import org.eclipse.milo.opcua.stack.core.AttributeId
@@ -28,13 +28,14 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger
 import org.eclipse.milo.opcua.stack.core.types.builtin.{DataValue, ExtensionObject, NodeId, QualifiedName}
 import org.eclipse.milo.opcua.stack.core.types.enumerated.{DataChangeTrigger, DeadbandType, MonitoringMode, TimestampsToReturn}
 import org.eclipse.milo.opcua.stack.core.types.structured.{DataChangeFilter, MonitoredItemCreateRequest, MonitoringParameters, ReadValueId}
-import org.slf4j.LoggerFactory
 
 import java.util
-import java.util.concurrent.{CompletableFuture, Future}
-import java.util.function.{BiConsumer, Consumer}
+import java.util.function.Consumer
 import scala.collection.JavaConversions._
-
+/**
+ * The [OpcUaSubscriber] controls the publishing
+ * of OPC-UA events
+ */
 class OpcUaSubscriber(
    client: OpcUaClient,
    subscription: UaSubscription,
@@ -91,7 +92,6 @@ class OpcUaSubscriber(
      * is to create the item in sampling mode, hook up the consumer after the creation
      * call completes, and then change the mode for all items to reporting.
      */
-
     val onItemCreated: UaSubscription.ItemCreationCallback = new UaSubscription.ItemCreationCallback {
       override def onItemCreated(item: UaMonitoredItem, id: Int): Unit = {
 
