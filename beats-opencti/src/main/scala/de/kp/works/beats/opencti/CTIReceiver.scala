@@ -1,6 +1,6 @@
 package de.kp.works.beats.opencti
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,10 +18,9 @@ package de.kp.works.beats.opencti
  *
  */
 
+import de.kp.works.beats.BeatsReceiver
 import de.kp.works.beats.handler.OutputHandler
 import de.kp.works.beats.ssl.SslOptions
-
-import java.util.concurrent.{ExecutorService, Executors}
 
 /**
  * OpenCTI is currently using REDIS Stream as its technical layer.
@@ -57,49 +56,19 @@ class CTIReceiver(
    sslOptions:Option[SslOptions] = None,
    outputHandler:OutputHandler,
    /* The number of threads to use for processing */
-   numThreads:Int = 1) {
+   numThreads:Int = 1) extends BeatsReceiver(numThreads) {
 
-  private var executorService:ExecutorService = _
+  def getWorker: Runnable = new Runnable {
+    private val connector =
+      new CTIConnector(endpoint, outputHandler, authToken, sslOptions)
 
-  def start():Unit = {
-    /*
-     * Wrap connector and output handler in a runnable
-     */
-    val worker = new Runnable {
-      /*
-       * Initialize the connector to the
-       * OpenCTI server
-       */
-      private val connector = new CTIConnector(endpoint, outputHandler, authToken, sslOptions)
+    override def run(): Unit = {
+      val message = s"OpenCTI Receiver worker started."
+      info(message)
 
-      override def run(): Unit = {
+      connector.start()
 
-        val now = new java.util.Date().toString
-        println(s"[CTIReceiver] $now - Receiver worker started.")
-
-        connector.start()
-
-      }
     }
-
-    try {
-
-      /* Initiate stream execution */
-      executorService = Executors.newFixedThreadPool(numThreads)
-      executorService.execute(worker)
-
-    } catch {
-      case _:Throwable => executorService.shutdown()
-    }
-
-  }
-
-  def stop():Unit = {
-
-    /* Stop listening to the OpenCTI events stream  */
-    executorService.shutdown()
-    executorService.shutdownNow()
-
   }
 
 }
