@@ -33,11 +33,19 @@ object OpcUaRegistry {
 
   def addClient(clientId: String, topic: OpcUaTopic): (Int, Boolean) = {
 
-    val clients = topicClients.getOrElse(topic.topicName, mutable.HashSet.empty[String])
+    val topicName = topic.topicName
+    /*
+     * The topic name like opc/works/node/ns=2;s=ExampleDP_Float.ExampleDP_Arg1
+     * is linked to the (unique) client identifier (= works)
+     */
+    val clients = topicClients.getOrElse(topicName, mutable.HashSet.empty[String])
     val added = clients.add(clientId)
 
-    topicClients += topic.topicName -> clients
-    (clients.size, added)
+    topicClients += topicName -> clients
+    val totalClients = topicClients(topicName).size
+
+    (totalClients, added)
+
   }
 
   def delClient(clientId: String, topic: OpcUaTopic): Int = {

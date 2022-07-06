@@ -41,7 +41,7 @@ class OpcUaSubscriber(
    subscription: UaSubscription,
    outputHandler: OutputHandler) extends BeatsLogging {
 
-  private val caches = new OpcUaCaches(client)
+  private val caches = new OpcUaCache(client)
   private val opcUaCfg: Config = BeatsConf.getBeatCfg(BeatsConf.OPCUA_CONF)
   /*
    * Unpack monitoring configuration
@@ -166,18 +166,29 @@ class OpcUaSubscriber(
     }
 
   }
-
+  /**
+   * This method supports the starting phase of the
+   * [OpcUAConnector] where an existing [UaSubscription]
+   * learns about the configured topics.
+   */
   def subscribeTopic(clientId: String, topic: OpcUaTopic):Boolean = {
 
     try {
 
-      val tuple = OpcUaRegistry.addClient(clientId, topic)
-
-      val added: Boolean = tuple._2.asInstanceOf[Boolean]
-      val count: Int = tuple._1.asInstanceOf[Int]
-
+      val (totalClients, added) = OpcUaRegistry.addClient(clientId, topic)
+      /*
+       * If `added` = true, client & topic are
+       * registered already. This indicates that
+       * the [UaSubscription] already knows the
+       * topic.
+       */
       if (!added) return true
-      if (count == 1) {
+      if (totalClients == 1) {
+        /*
+         * This is the first time, the topic is
+         * registered, so also assign the topic
+         * to the [UaSubscription].
+         */
         subscribeTopics(List(topic))
       }
       else true
@@ -189,7 +200,11 @@ class OpcUaSubscriber(
     }
 
   }
-
+  /**
+   * This is a common method that supports
+   * the initial registration of topics, and
+   * also the re-attempt to do so.
+   */
   def subscribeTopics(topics: List[OpcUaTopic]):Boolean = {
 
     var success = false
@@ -202,15 +217,17 @@ class OpcUaSubscriber(
 
     try {
 
-      if (!subscribeNodes(nodeTopics)) return false
+      if (!subscribeNodes(nodeTopics))
+        throw new Exception("Node")
 
-      if (!subscribePath(pathTopics)) return false
+      if (!subscribePath(pathTopics))
+        throw new Exception("Path")
 
       success = true
 
     } catch {
       case t:Throwable =>
-        val message = s"Subscribing topics failed: ${t.getLocalizedMessage}"
+        val message = s"Attempt to assign ${t.getLocalizedMessage} topics failed."
         error(message)
     }
 

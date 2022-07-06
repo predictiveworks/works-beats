@@ -1,6 +1,6 @@
 package de.kp.works.beats.opcua
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -33,9 +33,9 @@ import java.util.concurrent.{ExecutionException, TimeUnit}
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 
-class OpcUaCaches(client:OpcUaClient) {
+class OpcUaCache(client:OpcUaClient) {
 
-  private val LOGGER = LoggerFactory.getLogger(classOf[OpcUaCaches])
+  private val LOGGER = LoggerFactory.getLogger(classOf[OpcUaCache])
 
   private val opcUaCfg = BeatsConf.getBeatCfg(BeatsConf.OPCUA_CONF)
   private val addressCacheCfg = opcUaCfg.getConfig("addressCache")
@@ -44,19 +44,27 @@ class OpcUaCaches(client:OpcUaClient) {
   private val expireAfterSeconds = addressCacheCfg.getInt("expireAfterSeconds")
 
   private val cacheLoader = new CacheLoader[String, List[(NodeId, String)]]() {
-
+    /*
+     * This method is used with the cache `get`
+     * method
+     */
     override def load(id: String):List[(NodeId, String)] = {
       browseAddress(id)
     }
 
   }
+  /**
+   * Build an empty address cache
+   */
   private val addressCache = CacheBuilder.newBuilder()
     .maximumSize(maximumSize)
     .expireAfterAccess(expireAfterSeconds, TimeUnit.SECONDS)
     .build[String, List[(NodeId, String)]](cacheLoader)
 
-  /*
+  /**
    * The `address` represents the browse path
+   * and this method retrieves the associated
+   * node ids from the OPC-UA server.
    */
   private def browseAddress(address: String): List[(NodeId, String)] = {
 
@@ -224,7 +232,12 @@ class OpcUaCaches(client:OpcUaClient) {
   }
 
   def resolveTopic(topic:OpcUaTopic):java.util.List[OpcUaTopic] = {
-
+    /*
+     * Reminder:
+     *
+     * Leveraging the `get` method invokes the
+     * load method of the cache loader
+     */
     val result = addressCache.get(topic.address)
     result.map{case(nodeId, browsePath) =>
       OpcUaTopic(

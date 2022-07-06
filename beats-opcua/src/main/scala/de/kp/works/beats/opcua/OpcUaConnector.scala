@@ -29,6 +29,7 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.{DateTime, StatusCode}
 import org.eclipse.milo.opcua.stack.core.types.structured.ServiceFault
 
 import java.util.function.{BiConsumer, Consumer}
+import scala.collection.mutable
 /**
  * The [OpcUaConnector] is controlled by the respective
  * receiver. This class is responsible for creating the
@@ -83,28 +84,33 @@ class OpcUaConnector() extends BeatsLogging {
   }
 
   private def createSubscription(): Unit = {
-
-    subscription = opcUaClient
-      .getSubscriptionManager
+    /*
+     * STEP #1: Create a [UaSubscription]
+     * with a pre-defined sampling interval
+     */
+    subscription = opcUaClient.getSubscriptionManager
       .createSubscription(subscriptionSamplingInterval)
-      .whenComplete(new BiConsumer[UaSubscription, Throwable] {
-        override def accept(s: UaSubscription, t: Throwable): Unit = {
-          if (t == null) {
-            subscription = s
-            try resubscribe()
-            catch {
-              case ex: Throwable =>
-                error(s"Re-subscription failed: ${ex.getLocalizedMessage}")
-            }
-          }
-          else {
-            error(s"Create a subscription failed: ${t.getLocalizedMessage}")
-          }
-        }
-      }).get
+      .get
+    /*
+     * STEP #2: Invoke `resubscribe` method to
+     * reassign the registered topics (registry).
+     *
+     * In case of a connection request `resubscribe`
+     * has no effect as the registry is empty at
+     * ths stage.
+     */
+    try resubscribe()
+    catch {
+      case ex: Throwable =>
+        error(s"Re-subscription failed: ${ex.getLocalizedMessage}")
+    }
 
   }
-
+  /**
+   * This method supports the re-subscription
+   * functionality in a situation, when the
+   * subscription listener detected a failure.
+   */
   private def resubscribe():Unit = {
 
     val topics = OpcUaRegistry.getTopics
@@ -133,41 +139,63 @@ class OpcUaConnector() extends BeatsLogging {
    */
   def start():Boolean = {
 
-    var success = false
     try {
+      /*
+       * NOTE: As part of the connection functionality,
+       * also the [UASubscription] is created.
+       *
+       * This is an initial [UaSubscription] with no
+       * topics assigned.
+       */
+      if (!connect()) return false
+      /*
+       * Transform configured subscription patterns
+       * into OPC-UA topics
+       */
+      val topics = mutable.ArrayBuffer.empty[OpcUaTopic]
+      subscribeOnStartup.foreach(pattern => {
+        /*
+        * node/ns=2;s=ExampleDP_Float.ExampleDP_Arg1
+        * node/ns=2;s=ExampleDP_Text.ExampleDP_Text1
+        * path/Objects/Test/+/+
+        */
+        val topic = OpcUaTransform.parse(uri + "/" + pattern)
+        if (topic.isValid) topics += topic
 
-      if (connect()) {
-        subscribeOnStartup.foreach(pattern => {
-          /*
-           * node/ns=2;s=ExampleDP_Float.ExampleDP_Arg1
-           * node/ns=2;s=ExampleDP_Text.ExampleDP_Text1
-           * path/Objects/Test/+/+
-           */
-          val topic = OpcUaTransform.parse(uri + "/" + pattern)
-          if (topic.isValid) {
+      })
 
-            val subscriber = new OpcUaSubscriber(opcUaClient, subscription, outputHandler)
-            try {
-              /*
-               * This subscriber method registers the provided
-               * topic in the `OpcUaRegistry`
-               */
-              success = subscriber.subscribeTopic(id, topic)
+      if (topics.isEmpty) {
+        val message = s"No valid subscription topics found."
+        error(message)
 
-            } catch {
-              case t:Throwable =>
-                error(s"Starting OPC-UA connection failed: ${t.getLocalizedMessage}")
-              }
-          }
-        })
+        return false
       }
+
+      val subscriber = new OpcUaSubscriber(opcUaClient, subscription, outputHandler)
+      topics.foreach(topic => {
+
+        try {
+          /*
+           * This subscriber method registers the provided
+           * topic in the `OpcUaRegistry`
+           */
+          val result = subscriber.subscribeTopic(id, topic)
+          if (!result) throw new Exception(s"Topic ${topic.topicName} ")
+
+        } catch {
+          case t:Throwable =>
+            error(s"Subscription failed: ${t.getLocalizedMessage}")
+        }
+
+      })
+
+      true
 
     } catch {
       case t:Throwable =>
         error(s"Starting OPC-UA connection failed: ${t.getLocalizedMessage}")
+        false
     }
-
-    success
 
   }
   /**
