@@ -46,7 +46,6 @@ object OpcUaUtils {
       item
   }
 
-  //
   /** HOSTNAME UTILS **/
 
   def getHostname:String = {
