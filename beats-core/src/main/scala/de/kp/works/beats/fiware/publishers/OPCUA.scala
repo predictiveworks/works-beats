@@ -19,29 +19,70 @@ package de.kp.works.beats.fiware.publishers
  *
  */
 
-import com.google.gson.JsonElement
+import com.google.gson.{JsonElement, JsonObject}
 
 object OPCUA extends BasePublisher {
   /**
    * `eventData` is a JSON object with the following
-   * format:
+   * NGSI compliant format:
    *
    * {
-   * "format": "...",
    * "entity": {
    * "id": "...",
    * "type": "...",
-   * "timestamp": {...},
-   * "rows": [
-   * {
-   * "action": {...},
-   * "<column>": {...},
-   *
-   * }
-   * ]
-   * }
+   * "<attribute>": {...},
+   * ...
    * }
    */
-  override def publish(eventData: JsonElement): Unit =
-    throw new Exception("not implemented yet")
+  override def publish(eventData: JsonElement): Unit = {
+    /*
+   * The `eventData` element is either a JsonObject
+   * or a JsonNull
+   */
+    if (eventData.isJsonNull) {
+      val message = s"OPC-UA event is empty and will not be published."
+      info(message)
+
+    } else {
+
+      val eventJson = eventData.getAsJsonObject
+      /*
+       * Check whether the provided entity already
+       * exists
+       */
+      val entityId = eventJson.get(ID).getAsString
+      if (entityExists(entityId))
+        publishUpdate(eventJson)
+
+      else
+        publishCreate(eventJson)
+
+    }
+
+  }
+
+  protected def publishCreate(entityJson: JsonObject): Unit = {
+    entityCreate(entityJson)
+  }
+
+  protected def publishUpdate(eventJson:JsonObject):Unit = {
+    /*
+     * The respective POC-UA entity exists and
+     * this request either updates or deletes
+     * a certain set of attributes
+     *
+     * Extract entity identifier, type, action and
+     * attributes
+     */
+    val entityId = eventJson.remove(ID).getAsString
+    eventJson.remove(TYPE).getAsString
+    /*
+     * The remaining event JSON represents the attributes
+     * associated with this event
+     */
+    val attrs = eventJson
+    attributesUpdate(entityId, attrs)
+
+  }
+
 }

@@ -196,7 +196,7 @@ trait STIXBase extends BeatsTransform {
          * object labels of STIX objects. In this case, an extra
          * vertex is created to specify the respective label.
          */
-        case label@String =>
+        case label@(_: String) =>
           val value = label.asInstanceOf[String]
           labelsJson.add(value)
 
