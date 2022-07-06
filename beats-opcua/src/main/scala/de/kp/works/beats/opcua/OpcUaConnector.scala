@@ -19,66 +19,37 @@ package de.kp.works.beats.opcua
  *
  */
 
-import com.typesafe.config.Config
+import de.kp.works.beats.BeatsLogging
 import de.kp.works.beats.handler.OutputHandler
-import de.kp.works.beats.opcua.security.SecurityUtil
-import de.kp.works.beats.{BeatsConf, BeatsLogging}
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
-import org.eclipse.milo.opcua.sdk.client.api.config.{OpcUaClientConfig, OpcUaClientConfigBuilder}
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.{UaSubscription, UaSubscriptionManager}
 import org.eclipse.milo.opcua.sdk.client.api.{ServiceFaultListener, UaClient}
 import org.eclipse.milo.opcua.stack.core.UaException
-import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy
-import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger
-import org.eclipse.milo.opcua.stack.core.types.builtin.{DateTime, LocalizedText, StatusCode}
-import org.eclipse.milo.opcua.stack.core.types.structured.{EndpointDescription, ServiceFault}
-import org.eclipse.milo.opcua.stack.core.util.EndpointUtil
+import org.eclipse.milo.opcua.stack.core.types.builtin.{DateTime, StatusCode}
+import org.eclipse.milo.opcua.stack.core.types.structured.ServiceFault
 
-import java.security.Security
-import java.util.Optional
-import java.util.function.{BiConsumer, Consumer, Function}
-import scala.collection.JavaConversions._
-
+import java.util.function.{BiConsumer, Consumer}
+/**
+ * The [OpcUaConnector] is controlled by the respective
+ * receiver. This class is responsible for creating the
+ * Eclipse Milo OPC-UA client, connecting to the configured
+ * server and registrating the subscriptions.
+ */
 class OpcUaConnector() extends BeatsLogging {
 
   private var opcUaClient:OpcUaClient = _
   private var subscription:UaSubscription = _
 
   private var outputHandler:OutputHandler = _
-
-  private val opcUaCfg: Config = BeatsConf.getBeatCfg(BeatsConf.OPCUA_CONF)
-
-  private val identityProvider = OpcUaOptions.getIdentityProvider
   private val subscribeOnStartup = OpcUaOptions.getTopics
 
-  private val receiverCfg:Config = opcUaCfg.getConfig("receiver")
+  private val id = OpcUaOptions.getId
+  private val uri = OpcUaOptions.getUri
 
-  private val id = receiverCfg.getString("id")
-  private val uri = "opc/" + id
-
-  private val endpointUrl = receiverCfg.getString("endpointUrl")
-  private val updateEndpointUrl = receiverCfg.getBoolean("updateEndpointUrl")
-
-  private val connectTimeout = receiverCfg.getInt("connectTimeout")
-  private val requestTimeout = receiverCfg.getInt("requestTimeout")
-
-  private val keepAliveFailuresAllowed = receiverCfg.getInt("keepAliveFailuresAllowed")
-  private val subscriptionSamplingInterval = receiverCfg.getDouble("subscriptionSamplingInterval")
+  private val subscriptionSamplingInterval = OpcUaOptions.getSamplingInterval
 
   private val retryWait  = 5000
   private val maxRetries = 10
-  /*
-   * Retrieve security policy that is expected to be
-   * implemented at the endpoint (see endpoint filter)
-   */
-  private val securityPolicy = SecurityUtil.getSecurityPolicy
-  if (securityPolicy.nonEmpty && securityPolicy.get == SecurityPolicy.Aes256_Sha256_RsaPss) {
-
-    Security.addProvider(new BouncyCastleProvider)
-    SecurityUtil.setSecurityPolicy(securityPolicy.get)
-
-  }
   /*
    * Initialize subscription listener to determine
    * whether a subscription transfer failed, and
@@ -113,10 +84,10 @@ class OpcUaConnector() extends BeatsLogging {
 
   private def createSubscription(): Unit = {
 
-    opcUaClient
+    subscription = opcUaClient
       .getSubscriptionManager
       .createSubscription(subscriptionSamplingInterval)
-      .whenCompleteAsync(new BiConsumer[UaSubscription, Throwable] {
+      .whenComplete(new BiConsumer[UaSubscription, Throwable] {
         override def accept(s: UaSubscription, t: Throwable): Unit = {
           if (t == null) {
             subscription = s
@@ -130,7 +101,7 @@ class OpcUaConnector() extends BeatsLogging {
             error(s"Create a subscription failed: ${t.getLocalizedMessage}")
           }
         }
-      })
+      }).get
 
   }
 
@@ -277,7 +248,7 @@ class OpcUaConnector() extends BeatsLogging {
     while (retry) {
 
       try {
-        opcUaClient = createClient()
+        opcUaClient = OpcUaOptions.buildClient
 
         retry   = false
         success = true
@@ -299,74 +270,6 @@ class OpcUaConnector() extends BeatsLogging {
 
     success
 
-  }
-
-  private def createClient(): OpcUaClient = {
-
-    val selectEndpoint = new Function[java.util.List[EndpointDescription], Optional[EndpointDescription]] {
-      override def apply(endpoints: java.util.List[EndpointDescription]): Optional[EndpointDescription] = {
-        Optional.of[EndpointDescription](
-          endpoints
-            .filter(e => endpointFilter(e))
-            .map(e => endpointUpdater(e))
-            .head)
-      }
-    }
-
-    val buildConfig = new Function[OpcUaClientConfigBuilder, OpcUaClientConfig] {
-      override def apply(configBuilder: OpcUaClientConfigBuilder): OpcUaClientConfig = {
-
-        configBuilder
-          .setApplicationName(LocalizedText.english(OpcUaUtils.APPLICATION_NAME))
-          .setApplicationUri(OpcUaUtils.APPLICATION_URI)
-          .setIdentityProvider(identityProvider)
-          .setKeyPair(SecurityUtil.getClientKeyPair.get)
-          .setCertificate(SecurityUtil.getClientCertificate.get)
-          .setConnectTimeout(UInteger.valueOf(connectTimeout))
-          .setRequestTimeout(UInteger.valueOf(requestTimeout))
-          .setKeepAliveFailuresAllowed(UInteger.valueOf(keepAliveFailuresAllowed))
-          .build()
-
-      }
-    }
-
-    OpcUaClient.create(endpointUrl, selectEndpoint, buildConfig)
-
-  }
-  /**
-   * Method restricts endpoints to those that either
-   * have no security policy implemented or a policy
-   * the refers to configured policy.
-   */
-  private def endpointFilter(e:EndpointDescription):Boolean = {
-    securityPolicy.isEmpty || securityPolicy.get.getUri.equals(e.getSecurityPolicyUri)
-  }
-
-  private def endpointUpdater(e:EndpointDescription ):EndpointDescription = {
-
-    if (!updateEndpointUrl) return e
-    /*
-     * "opc.tcp://desktop-9o6hthf:4890"; // WinCC UA NUC
-     * "opc.tcp://desktop-pc4fa6r:4890"; // WinCC UA Laptop
-     * "opc.tcp://centos1.predictiveworks.local:4840"; // WinCC OA
-     * "opc.tcp://ubuntu1:62541/discovery" // Ignition
-     */
-    val parts1 = endpointUrl.split("://")
-    if (parts1.length != 2) {
-      warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
-      return e
-    }
-    val parts2 = parts1(1).split(":")
-    if (parts2.length == 1) {
-      EndpointUtil.updateUrl(e, parts2(0))
-    }
-    else if (parts2.length == 2) {
-      EndpointUtil.updateUrl(e, parts2(0), Integer.parseInt(parts2(1)))
-    }
-    else {
-      warn("Provided endpoint url :" + endpointUrl + " cannot be split.")
-      e
-    }
   }
 
   private def connectClientWithRetry:Boolean = {
