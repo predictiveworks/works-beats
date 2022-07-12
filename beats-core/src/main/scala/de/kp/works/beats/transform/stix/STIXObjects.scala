@@ -551,11 +551,9 @@ object STIXObjects extends STIXBase {
                  * This implementation expects that a certain
                  * algorithm cannot be added, replaced or deleted
                  */
-                val metaJson = new JsonObject
-                metaJson.addProperty(ACTION, operation)
-
                 val attrJson = new JsonObject
-                attrJson.add(METADATA, metaJson)
+                attrJson.addProperty(ACTION, operation)
+                attrJson.add(METADATA, new JsonObject)
 
                 attrJson.addProperty(TYPE, "String")
                 attrJson.addProperty(VALUE, hash("hash"))
