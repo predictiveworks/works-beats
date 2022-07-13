@@ -87,7 +87,7 @@ class OpcUaSubscriber(
 
     })
     /*
-     * When creating items in MonitoringMode.Reporting this callback is where
+     * When creating items in MonitoringMode. Reporting this callback is where
      * each item needs to have its value/event consumer hooked up. The alternative
      * is to create the item in sampling mode, hook up the consumer after the creation
      * call completes, and then change the mode for all items to reporting.
@@ -212,8 +212,8 @@ class OpcUaSubscriber(
      * Distinguish between node (id) based and
      * browse path based topics
      */
-    val nodeTopics = topics.filter(topic => topic.topicType == OpcUaTopicType.NodeId)
-    val pathTopics = topics.filter(topic => topic.topicType == OpcUaTopicType.Path)
+    val nodeTopics = topics.filter(topic => topic.topicType == OpcUaTopicTypes.NodeId)
+    val pathTopics = topics.filter(topic => topic.topicType == OpcUaTopicTypes.Path)
 
     try {
 

@@ -9,6 +9,9 @@ results via FIWARE, MQTT or SSE.
 high-performance stack (channels, serialization, data structures, security), and client and
 server SDKs.
 
+**OPC-UA Beat** serves as a data gateway that tracks, standardizes and exposes industrial
+IoT data to FIWARE & MQTT networks, and via SSE to custom applications.
+
 # OPC UA
 
 **OPC UA** is a well-known client-server protocol used in the Industry. An OPC UA server is usually 

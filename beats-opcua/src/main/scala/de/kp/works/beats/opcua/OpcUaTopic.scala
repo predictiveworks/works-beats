@@ -1,6 +1,7 @@
 package de.kp.works.beats.opcua
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,22 +19,25 @@ package de.kp.works.beats.opcua
  *
  */
 
-object OpcUaTopicType extends Enumeration {
+import de.kp.works.beats.opcua.OpcUaTopicTypes.OpcUaTopicType
 
-  val NodeId: OpcUaTopicType.Value = Value("NodeId")
-  val Path: OpcUaTopicType.Value = Value("Path")
+object OpcUaTopicTypes extends Enumeration {
+
+  type OpcUaTopicType = Value
+
+  val NodeId: OpcUaTopicType = Value(1, "NodeId")
+  val Path: OpcUaTopicType   = Value(2, "Path")
 
 }
 
 case class OpcUaTopic(
-  address:String,
-  browsePath:String = "",
-  topicName:String,
-  topicType: OpcUaTopicType.Value,
-  systemName:String) {
+   address:String,
+   browsePath:String = "",
+   topicName:String,
+   topicType: OpcUaTopicType,
+   systemName:String) {
 
   def isValid:Boolean = {
-    // TODO
     true
   }
 }

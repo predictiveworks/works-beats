@@ -193,7 +193,7 @@ object OpcUaTransform {
        * This [OpcUaBeat] supports string types only
        */
       val address = s"ns=$addr1;s=$addr2"
-      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.NodeId, systemName = systemName)
+      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicTypes.NodeId, systemName = systemName)
 
     } catch {
       case _: Throwable => null
@@ -222,7 +222,7 @@ object OpcUaTransform {
       if (address == null || systemName == null)
         throw new Exception("Regex does not match.")
 
-      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.NodeId, systemName = systemName)
+      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicTypes.NodeId, systemName = systemName)
 
     } catch {
       case _: Throwable => null
@@ -254,7 +254,7 @@ object OpcUaTransform {
         throw new Exception("Regex does not match.")
 
       val address = s"$addr1/$addr2"
-      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicType.Path, systemName = systemName)
+      OpcUaTopic(address = address, topicName = text, topicType = OpcUaTopicTypes.Path, systemName = systemName)
 
     } catch {
       case _: Throwable => null
