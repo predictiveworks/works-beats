@@ -1,22 +1,24 @@
 
 # Works Beats
 
-Works Beats are part of the Cy(I)IoT stack and expand its capabilities by extremely
-useful components to work alongside PredictiveWorks.
+Works Beats are important building blocks of PredictiveWorks' combined Cyber Defense
+and IoT solution approach, called Cy(I)IoT.
 
-Beats are essentially lightweight, standalone purpose-built micro-services based on Akka.
-They are built to acquire data and then it into the Apache Spark based  Cy(I)IoT ecosystem.
-
-Works Beats harmonize multiple data protocols and currently ship data via MQTT and SSE.
+Beats are essentially lightweight, purpose-built scalable micro-services based on Akka.
+They are built to acquire, transform and disseminate data. Works Beats are data gateways
+that connect various data sources with FIWARE, MQTT and SSE output channel.
 
 There are current 7 official Beats: Fiware Beat, Fleet Beat, OPC-UA Beat, OpenCTI Beat, Things Beat, 
 TLS Beat and Zeek Beat.
 
 ## FIWARE Beat
 
-**Fiware Beat** is a standalone Akka-based Http(s) service that connects to the FIWARE
-Context Broker, receives notifications that match custom subscriptions, and re-publishes
-these notifications via MQTT or SSE.
+**Fiware Beat** is an Akka-based Http(s) microservice that connects to a FIWARE Context Broker, 
+receives notifications that match configured subscriptions, and re-publishes these notifications 
+via MQTT or SSE. 
+
+This approach sends higher level context (e.g., interpreted data) back to MQTT networks to enrich 
+and complement sensor readings. 
 
 **FIWARE** brings a curated framework of open source software components to accelerate and
 ease the implementation of smart IoT platforms and solutions.
@@ -45,8 +47,8 @@ and events from multi-protocol IoT devices can be used in the Apache Spark ecosy
 
 ## Fleet Beat
 
-**Fleet Beat** is a standalone Akka-based Http(s) service that monitors the Fleet platform's
-event log directory and re-publishes log (change) events via MQTT or SSE.
+**Fleet Beat** is an Akka-based Http(s) microservice that monitors the Fleet platform's
+event log directory and re-publishes log (change) events via FIWARE, MQTT or SSE.
 
 *Fleet* is a device management platform on top of *Osquery* for 100,000+ devices (and Osquery
 agents). Fleet is a TLS endpoint for Osquery agents and collects configured & adhoc query 
@@ -55,21 +57,34 @@ results on the file system.
 From an analytics perspective, Fleet serves as a query result aggregator that can be used to
 derive meaningful insights from a large ensemble of devices at once.
 
+**Fleet Beat** is a data gateway that tracks, standardizes and publishes operating system
+data (endpoint data) to IoT data platforms. Suppose you built an IoT network to monitor and
+analyze operational data. FleetBeat seamlessly complements every IoT infrastructure with
+security data from endpoint sensors.
+
+**Fleet Beat** is part of PredictiveWorks' Security Beats and offers a threat detection sensor
+for enterprise endpoints or nodes. Due to its output channels, FIWARE, MQTT and SSE, Fleet Beat 
+is built to complement (security) context recognition infrastructures with raw context.
+
+**Fleet Beat** perfectly works with **Works Stream**.
+
 ## OPC-UA Beat
 
-**OPC-UA Beat** is a standalone Akka-based Http(s) service that connects to an OPC-UA server
-leveraging *Eclipse Milo*, listens to configured subscriptions and re-publishes subscription 
-results via MQTT or SSE.
+**OPC-UA Beat** is an Akka-based Http(s) microservice that connects to an OPC-UA server leveraging 
+*Eclipse Milo*, listens to configured subscriptions and re-publishes subscription results via 
+FIWARE, MQTT or SSE.
 
 **Milo** is an open-source implementation of OPC UA (currently targeting 1.03). It includes a 
 high-performance stack (channels, serialization, data structures, security), and client and 
 server SDKs.
 
+**OPC-UA Beat** perfectly works with **Works Stream**.
+
 ## OpenCTI Beat
 
-**OpenCTI Beat** is a standalone Akka-based Http(s) service that connects to the OpenCTI
+**OpenCTI Beat** is an Akka-based Http(s) microservice that connects to the OpenCTI
 SSE stream, transforms *create*, *update* and *delete* events from STIX 2.0 to NGSI and
-re-publishes these events via SSE.
+re-publishes these events via FIWARE, MQTT and SSE.
 
 **OpenCTI** is a unified open source platform for all levels of Cyber Threat Intelligence.
 A major goal is to build and provide a powerful knowledge base for cyber threat intelligence
@@ -83,7 +98,7 @@ and open threat intelligence events can be used in the Apache Spark ecosystem.
 
 ## Osquery Beat
 
-**Osquery Beat** is a standalone Akka-based Http(s) service and provides a TLS endpoint
+**Osquery Beat** is an Akka-based Http(s) microservice and provides a TLS endpoint
 for Osquery node-based *query results* and *status messages*. Node and status information
 is consumed and re-published via MQTT or SSE.
 
@@ -103,9 +118,8 @@ and events from thousands of machines and endpoints can be used in the Apache Sp
 
 ## Things Beat
 
-**Things Beat** is a standalone Akka-based Http(s) service that leverages
-a Mqtt client based ThingsBoard connector. Retrieved events are transformed
-into the NGSI format and re-published via MQTT or SSE.
+**Things Beat** is an Akka-based Http(s) microservice that leverages a MQTT based ThingsBoard connector. 
+Retrieved events are transformed into the NGSI format and re-published via MQTT or SSE.
 
 **ThingsBoard** is an open-source IoT platform for data collection, processing, visualization, and device management.
 It enables device connectivity via industry standard IoT protocols like MQTT, CoAP and HTTP and supports both cloud and
@@ -124,7 +138,7 @@ and events from multi-protocol IoT devices can be used in the Apache Spark ecosy
 
 ## Zeek Beat
 
-**Zeek Beat** is a standalone Akka-based Http(s) service that monitors the Zeek sensor's
+**Zeek Beat** is an Akka-based Http(s) microservice that monitors the Zeek sensor's
 event log directory and re-publishes log (change) events via MQTT or SSE.
 
 **Zeek** is a passive, open-source network traffic analyzer. It can be used as a network security 
