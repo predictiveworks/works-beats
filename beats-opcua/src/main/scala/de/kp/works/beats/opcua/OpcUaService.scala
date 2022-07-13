@@ -49,7 +49,11 @@ class OpcUaService extends BeatsService(BeatsConf.OPCUA_CONF) {
 
     val channel = getOutputCfg.getString("channel")
     outputHandler.setChannel(channel)
-
+    /*
+     * The OPC-UA Beat implements a project specific
+     * transformer [OpcUaTransform]. This is in
+     * contrast to other beats.
+     */
     channel match {
       case "fiware" =>
       /*

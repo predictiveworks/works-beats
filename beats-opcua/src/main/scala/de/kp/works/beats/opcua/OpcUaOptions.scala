@@ -69,7 +69,10 @@ object OpcUaOptions extends BeatsLogging {
     SecurityUtil.setSecurityPolicy(securityPolicy.get)
 
   }
-
+  /**
+   * This method specifies the standard approach to
+   * build an Eclipse Milo OPC-UA client.
+   */
   def buildClient: OpcUaClient = {
 
     val selectEndpoint = new Function[JList[EndpointDescription], Optional[EndpointDescription]] {

@@ -21,14 +21,18 @@ package de.kp.works.beats.opcua
 
 import java.net.{Inet4Address, InetAddress, NetworkInterface}
 import java.util
-import java.util.Collections
 import scala.collection.JavaConversions.asScalaBuffer
 
 object OpcUaUtils {
 
-  def APPLICATION_NAME:String = "OPC-UA Beat@" + getHostname()
-  def APPLICATION_URI:String = String.format("urn:%s:works:opcua", getHostname())
-
+  def APPLICATION_NAME:String = "OPC-UA Beat@" + getHostname
+  def APPLICATION_URI:String = String.format("urn:%s:works:opcua", getHostname)
+  /**
+   * Every OPC-UA server should have at least the
+   * following nodes or folders; the Node Ids and
+   * their aliases is compliant with specification
+   * part 4
+   */
   def getRootNodeIdOfName(item:String):String = item match {
     case "Root" =>
       "i=84"
@@ -48,7 +52,12 @@ object OpcUaUtils {
 
   /** HOSTNAME UTILS **/
 
-  def getHostname:String = {
+  /**
+   * This method determine the (local) host name
+   * of the OPC-UA Beat. It is used to define the
+   * application name of this OPC-UA client.
+   */
+  private def getHostname:String = {
     try {
       InetAddress.getLocalHost.getHostName
 
@@ -71,10 +80,10 @@ object OpcUaUtils {
 
         try {
 
-          val netInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces)
+          val netInterfaces = util.Collections.list(NetworkInterface.getNetworkInterfaces)
           netInterfaces.foreach(netInterface => {
 
-            val inetAddresses = Collections.list(netInterface.getInetAddresses)
+            val inetAddresses = util.Collections.list(netInterface.getInetAddresses)
             inetAddresses.foreach(ia => {
 
               if (ia.isInstanceOf[Inet4Address]) {
