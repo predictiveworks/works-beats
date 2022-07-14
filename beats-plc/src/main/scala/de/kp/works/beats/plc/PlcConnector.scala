@@ -32,6 +32,8 @@ case class PlcField(fieldAddress:String, fieldName:String)
 class PlcConnector(outputHandler:OutputHandler) extends BeatsLogging{
 
   private var connection:Option[PlcConnection] = None
+
+  private val fields = PlcOptions.getPlcFields
   private val url = PlcOptions.getPlcUrl
 
   private val retryWait  = 5000
@@ -74,7 +76,7 @@ class PlcConnector(outputHandler:OutputHandler) extends BeatsLogging{
 
   }
 
-  def buildReadRequest(fields:Seq[PlcField]):Option[PlcReadRequest] = {
+  def buildReadRequest:Option[PlcReadRequest] = {
 
     try {
 
@@ -98,7 +100,7 @@ class PlcConnector(outputHandler:OutputHandler) extends BeatsLogging{
     }
   }
 
-  def connect():Boolean = {
+  private def connect():Boolean = {
 
     try {
       /*

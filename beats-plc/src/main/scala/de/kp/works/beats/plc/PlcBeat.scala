@@ -19,14 +19,24 @@ package de.kp.works.beats.plc
  *
  */
 
-object PlcOptions {
+import de.kp.works.beats.BaseBeat
 
-  def getPlcFields:Seq[PlcField] = ???
+/**
+ * The [PlcBeat] is Akka based Http(s) microservice that manages
+ * connections to a PLC, retrieves & transforms events, and publishes
+ * to FIWARE, MQTT and SSE.
+ */
 
-  def getPlcId:String = ???
+object PlcBeat extends BaseBeat {
 
-  def getPlcType:String = ???
+  override var programName: String = "PlcBeat"
+  override var programDesc: String = "Publish PLC events via multiple output channels."
 
-  def getPlcUrl:String = ???
+  override def launch(args: Array[String]): Unit = {
+
+    val service = new PlcService()
+    start(args, service)
+
+  }
 
 }
