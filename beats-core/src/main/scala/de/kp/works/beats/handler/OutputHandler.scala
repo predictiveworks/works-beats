@@ -221,6 +221,15 @@ class OutputHandler extends BeatsLogging {
     }
 
   }
+
+  /**
+   * This method defines the PLC Beat specific
+   * output handling
+   */
+  def sendPlcEvent(plcEvent:JsonObject):Unit = {
+    throw new Exception(s"Not supported yet")
+  }
+
   /**
    * This method defines the Things Beat specific
    * output handling

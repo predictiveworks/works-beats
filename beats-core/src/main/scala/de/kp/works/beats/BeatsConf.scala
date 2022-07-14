@@ -1,6 +1,6 @@
 package de.kp.works.beats
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -41,6 +41,9 @@ object BeatsConf {
 
   val OPENCTI_CONF = "opencti"
   val OPENCTI_NAME = "opencti"
+
+  val PLC_CONF = "plc"
+  val PLC_NAME = "plc"
 
   val THINGS_CONF = "things"
   val THINGS_NAME = "things"
@@ -93,13 +96,14 @@ object BeatsConf {
       throw new Exception(s"[ERROR] $now - Configuration not initialized.")
 
     name match {
-      case FIWARE_CONF => cfg.get.getConfig(FIWARE_CONF)
-      case FLEET_CONF => cfg.get.getConfig(FLEET_CONF)
-      case OPCUA_CONF => cfg.get.getConfig(OPCUA_CONF)
+      case FIWARE_CONF  => cfg.get.getConfig(FIWARE_CONF)
+      case FLEET_CONF   => cfg.get.getConfig(FLEET_CONF)
+      case OPCUA_CONF   => cfg.get.getConfig(OPCUA_CONF)
       case OPENCTI_CONF => cfg.get.getConfig(OPENCTI_CONF)
       case OSQUERY_CONF => cfg.get.getConfig(OSQUERY_CONF)
-      case THINGS_CONF => cfg.get.getConfig(THINGS_CONF)
-      case ZEEK_CONF => cfg.get.getConfig(ZEEK_CONF)
+      case PLC_CONF     => cfg.get.getConfig(PLC_CONF)
+      case THINGS_CONF  => cfg.get.getConfig(THINGS_CONF)
+      case ZEEK_CONF    => cfg.get.getConfig(ZEEK_CONF)
       case _ =>
         throw new Exception(s"[ERROR] $now - Unknown configuration request.")
     }
