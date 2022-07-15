@@ -38,8 +38,17 @@ import scala.util.{Failure, Success, Try}
 case class Response(status: Try[_])
 
 object BeatsActors {
-
+  /*
+   * This actor executes requests to determine
+   * the health status of the Works Beat.
+   */
   val BEATS_HEALTH_ACTOR = "beats_health_actor"
+  /*
+   * This actor executes requests to create or
+   * update the semantic description assigned
+   * to a certain Works Beat.
+   */
+  val BEATS_SEMANTICS_ACTOR = "beats_semantics_actor"
 }
 
 /**
@@ -62,7 +71,8 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
   def getRoutes:Route = {
 
     getStream ~
-    postHealth
+    postHealth ~
+    postSemantics
 
   }
 
@@ -90,6 +100,11 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
    * of a certain Works Beat.
    */
   private def postHealth:Route = routePost("beat/v1/health", actors.get(BEATS_HEALTH_ACTOR))
+  /**
+   * This route provides access to the semantics actor
+   * of a certain Works Beat.
+   */
+  private def postSemantics:Route = routePost("beat/v1/semantics", actors.get(BEATS_SEMANTICS_ACTOR))
 
   /*******************************
    *

@@ -123,6 +123,15 @@ abstract class BeatsActor(name:String, queue: SourceQueueWithComplete[String]) e
   }
 
   def execute(request:HttpRequest):String
+
+  /**
+   * This method connects a certain actor
+   * to the Works Beat's event stream
+   */
+  def publish(message:String):Unit = {
+    queue.offer(message)
+  }
+
   /**
    * This method is made fault resilient
    * and returns null in case of an error
