@@ -65,7 +65,7 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
    * This is the Server Sent Event route; the route
    * is harmonized with the Sensor Beat SSE route
    */
-  private def getStream:Route = {
+  protected def getStream:Route = {
 
     path("beat" / "stream") {
       options {
