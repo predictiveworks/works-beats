@@ -203,6 +203,8 @@ class TLSRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, Not
     }
   }
 
+  def stream:Route = getStream
+
   private def extractWrite = extract(writeActor)
 
   private def extract(actor:ActorRef) = {

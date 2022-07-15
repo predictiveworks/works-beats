@@ -88,7 +88,7 @@ class TLSService extends BeatsService(BeatsConf.OSQUERY_CONF) {
 
     val routes = new TLSRoutes(actors, source)
 
-    routes.event ~
+    routes.stream ~
     routes.config ~
     routes.enroll ~
     routes.log ~
