@@ -95,4 +95,6 @@ class FiwareRoutes(actors:Map[String, ActorRef], source:Source[ServerSentEvent, 
     }
   }
 
+  def stream:Route = getStream
+
 }

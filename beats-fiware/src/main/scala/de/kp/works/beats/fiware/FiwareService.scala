@@ -1,6 +1,6 @@
 package de.kp.works.beats.fiware
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -54,7 +54,7 @@ class FiwareService extends BeatsService(BeatsConf.FIWARE_CONF) {
      * Context Broker --> POST [notifications] & SSE --> GET [notification]
      *
      */
-    routes.event ~
+    routes.stream ~
     routes.notifications
 
   }
