@@ -1,6 +1,6 @@
 package de.kp.works.beats
-/*
- * Copyright (c) 2020 Dr. Krusche & Partner PartG. All rights reserved.
+/**
+ * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,7 +19,7 @@ package de.kp.works.beats
  */
 
 import akka.NotUsed
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
@@ -139,9 +139,15 @@ abstract class BeatsService(name:String) {
     queue: SourceQueueWithComplete[String],
     source: Source[ServerSentEvent, NotUsed]): Route = {
 
-    val routes = new BeatsRoutes(source)
-    routes.event
+    val actors = buildApiActors(queue)
 
+    val routes = new BeatsRoutes(actors, source)
+    routes.getRoutes
+
+  }
+
+  def buildApiActors(queue: SourceQueueWithComplete[String]):Map[String,ActorRef] = {
+    throw new Exception("not implemented")
   }
   /**
    * A public method to expose the output configuration
