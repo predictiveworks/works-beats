@@ -29,6 +29,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.scaladsl.Source
 import akka.util.{ByteString, Timeout}
+import com.google.gson.JsonObject
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -53,6 +54,10 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
    */
   val duration: FiniteDuration = 15.seconds
   implicit val timeout: Timeout = Timeout(duration)
+
+  def this(source:Source[ServerSentEvent, NotUsed]) = {
+    this(actors=Map.empty[String,ActorRef], source=source)
+  }
 
   def getRoutes:Route = {
 
@@ -84,14 +89,14 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
    * This route provides access to the health status
    * of a certain Works Beat.
    */
-  private def postHealth:Route = routePost("beat/v1/health", actors(BEATS_HEALTH_ACTOR))
+  private def postHealth:Route = routePost("beat/v1/health", actors.get(BEATS_HEALTH_ACTOR))
 
   /*******************************
    *
    * HELPER METHODS
    *
    */
-  def routePost(url:String, actor:ActorRef):Route = {
+  def routePost(url:String, actor:Option[ActorRef]):Route = {
     val matcher = separateOnSlashes(url)
     path(matcher) {
       post {
@@ -110,22 +115,30 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
     }
   }
 
-  def extract(actor:ActorRef): Route = {
+  def extract(actor:Option[ActorRef]): Route = {
     extractRequest { request =>
       complete {
-        /*
-         * The Http(s) request is sent to the respective
-         * actor and the actor' response is sent to the
-         * requester as response.
-         */
-        val future = actor ? request
-        Await.result(future, timeout.duration) match {
-          case Response(Failure(e)) =>
-            val message = e.getMessage
-            jsonResponse(message)
-          case Response(Success(answer)) =>
-            val message = answer.asInstanceOf[String]
-            jsonResponse(message)
+        if (actor.isEmpty) {
+          val response = new JsonObject
+          response.addProperty("status", "not supported")
+          jsonResponse(response.toString)
+
+        } else {
+          /*
+           * The Http(s) request is sent to the respective
+           * actor and the actor' response is sent to the
+           * requester as response.
+           */
+          val future = actor.get ? request
+          Await.result(future, timeout.duration) match {
+            case Response(Failure(e)) =>
+              val message = e.getMessage
+              jsonResponse(message)
+            case Response(Success(answer)) =>
+              val message = answer.asInstanceOf[String]
+              jsonResponse(message)
+          }
+
         }
       }
     }
