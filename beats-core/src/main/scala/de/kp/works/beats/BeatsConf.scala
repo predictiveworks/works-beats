@@ -36,6 +36,9 @@ object BeatsConf {
   val FLEET_CONF = "fleet"
   val FLEET_NAME = "fleet"
 
+  val MITRE_CONF = "mitre"
+  val MITRE_NAME = "mitre"
+
   val OPCUA_CONF = "opcua"
   val OPCUA_NAME = "opcua"
 
@@ -98,6 +101,7 @@ object BeatsConf {
     name match {
       case FIWARE_CONF  => cfg.get.getConfig(FIWARE_CONF)
       case FLEET_CONF   => cfg.get.getConfig(FLEET_CONF)
+      case MITRE_CONF   => cfg.get.getConfig(MITRE_CONF)
       case OPCUA_CONF   => cfg.get.getConfig(OPCUA_CONF)
       case OPENCTI_CONF => cfg.get.getConfig(OPENCTI_CONF)
       case OSQUERY_CONF => cfg.get.getConfig(OSQUERY_CONF)

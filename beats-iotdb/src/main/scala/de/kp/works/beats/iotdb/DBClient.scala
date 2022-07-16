@@ -58,4 +58,31 @@ object DBClient {
 
   def getSession: Option[Session] = session
 
+  def close:Boolean = {
+    try {
+
+      if (session.isEmpty) return false
+
+      session.get.close()
+      true
+
+    } catch {
+      case _:Throwable => /* Do nothing */ false
+    }
+
+  }
+
+  def open:Boolean = {
+    try {
+
+      if (session.isEmpty) return false
+
+      session.get.open(DBOptions.enableRPCCompression, DBOptions.connectionTimeoutInMs)
+      true
+
+    } catch {
+      case _:Throwable => /* Do nothing */ false
+    }
+  }
+
 }

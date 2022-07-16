@@ -15,6 +15,9 @@
     <module>beats-tls</module>
     <module>beats-opcua</module>
       <module>beats-openems</module>
+      <module>beats-plc</module>
+      <module>beats-iotdb</module>
+    <module>beats-mitre</module>
   </modules>
 
   <name>Works Beats</name>

@@ -19,28 +19,27 @@ package de.kp.works.beats.iotdb
  *
  */
 
-case class UserCreds(username:String, userpass:String)
+trait DBConstants {
 
-object DBOptions {
-
-  def connectionTimeoutInMs:Int = ???
-  
-  def enableCacheLeader:Boolean = ???
-
-  def enableRPCCompression:Boolean = ???
-
-  def fetchSize:Int = ???
-  /*
-   * The current implementation supports a single node
-   */
-  def host:String = ???
-
-  def port:Int = ???
-
-  def thriftDefaultBufferSize:Int = ???
-
-  def thriftMaxFrameSize:Int = ???
-
-  def userCreds:Option[UserCreds] = ???
+  val ARRAY          = "Array"
+  val BASE_TYPE      = "baseType"
+  val BIG_DECIMAL    = "BigDecimal"
+  val BIG_INTEGER    = "BigInteger"
+  val BOOLEAN        = "Boolean"
+  val BYTE           = "Byte"
+  val DOUBLE         = "Double"
+  val FLOAT          = "Float"
+  val ID             = "id"
+  val INTEGER        = "Int"
+  val LOCAL_DATE     = "LocalDate"
+  val LOCAL_DATETIME = "LocalDateTime"
+  val LOCAL_TIME     = "LocalTime"
+  val LONG           = "Long"
+  val METADATA       = "metadata"
+  val SHORT          = "Short"
+  val STRING         = "String"
+  val TIMESTAMP      = "timestamp"
+  val TYPE           = "type"
+  val VALUE          = "value"
 
 }
