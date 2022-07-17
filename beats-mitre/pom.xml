@@ -16,6 +16,18 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
+    <dependencies>
+
+        <!-- BEATS-CORE
+        -->
+        <dependency>
+            <groupId>de.kp.works</groupId>
+            <artifactId>beats-core</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+
+    </dependencies>
+
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
         <pluginManagement>
