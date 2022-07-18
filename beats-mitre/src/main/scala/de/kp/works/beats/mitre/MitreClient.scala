@@ -53,7 +53,9 @@ object MitreDomains extends Enumeration {
   val MOBILE:MitreDomain     = Value(4, "MOBILE")
 }
 
-object MitreClient extends BeatsLogging {
+object MitreClient extends MitreConnect
+
+abstract class MitreConnect extends BeatsLogging {
 
   private val cfg = BeatsConf.getBeatCfg(MITRE_CONF)
   private val base = cfg.getString("folder")
@@ -65,10 +67,145 @@ object MitreClient extends BeatsLogging {
   private val ENTERPRISE = STIXv21 + "/enterprise-attack"
   private val ICS        = STIXv21 + "/ics-attack"
   private val MOBILE     = STIXv21 + "/mobile-attack"
+
+  val OBJECT_TYPES = List(
+    "attack-pattern",
+    "course-of-action",
+    "identity",
+    "intrusion-set",
+    "malware",
+    "marking-definition",
+    "relationship",
+    "tool",
+    "x-mitre-collection",
+    "x-mitre-data-component",
+    "x-mitre-data-source",
+    "x-mitre-matrix",
+    "x-mitre-tactic")
+
+  /**
+   * The list of properties is a collection
+   * of all object type attributes in the
+   * domains Enterprise, Ics and Mobile
+   */
+  val OBJECT_TYPE_PROPS = List(
+    "aliases",
+    "created",
+    "created_by_ref",
+    "description",
+    "external_references",
+    "id",
+    "is_family",
+    "kill_chain_phases",
+    "modified",
+    "name",
+    "object_marking_refs",
+    "spec_version",
+    "type",
+    "x_mitre_aliases",
+    "x_mitre_attack_spec_version",
+    "x_mitre_contributors",
+    "x_mitre_data_sources",
+    "x_mitre_defense_bypassed",
+    "x_mitre_detection",
+    "x_mitre_domains",
+    "x_mitre_is_subtechnique",
+    "x_mitre_modified_by_ref",
+    "x_mitre_platforms",
+    "x_mitre_tactic_type",
+    "x_mitre_version")
+
+  def getBundle(domain:MitreDomain):JsonObject = {
+
+    domain match {
+      case MitreDomains.CAPEC =>
+        loadCapec()
+
+      case MitreDomains.ENTERPRISE =>
+        loadEnterprise()
+
+      case MitreDomains.ICS =>
+        loadIcs()
+
+      case MitreDomains.MOBILE =>
+        loadMobile()
+    }
+
+  }
+
+  def getObjects(domain:MitreDomain, objectType:Option[String]=None):Seq[JsonElement] = {
+
+    val bundle = getBundle(domain)
+    if (!bundle.has("objects")) {
+      val message = s"STIX bundles does not describe `objects`"
+      error(message)
+
+      return Seq.empty[JsonElement]
+    }
+
+    val objects = bundle.get("objects").getAsJsonArray
+    if (objectType.isEmpty) objects.toSeq
+    else {
+      objects.filter(obj => {
+
+        val objJson = obj.getAsJsonObject
+        val objType = objJson.get("type").getAsString
+
+        objType == objectType.get
+
+      })
+
+    }.toSeq
+
+  }
+  def getCoursesOfAction(domain:MitreDomain):Seq[JsonElement] = {
+    getObjects(domain, Some("course-of-action"))
+  }
+
+  def getDataSources(domain:MitreDomain):Seq[JsonElement] = {
+    getObjects(domain, Some("x-mitre-data-source"))
+  }
+
+  def getMalware(domain:MitreDomain):Seq[JsonElement] = {
+    getObjects(domain, Some("malware"))
+  }
+  /**
+   * Software is a generic term for custom or commercial code,
+   * operating system utilities, open-source software, or other
+   * tools used to conduct behavior modeled in ATT&CK.
+   *
+   * Some instances of software have multiple names associated
+   * with the same instance due to various organizations tracking
+   * the same set of software by different names.
+   *
+   * Software entries include publicly reported technique use or
+   * capability to use a technique and may be mapped to Groups
+   * who have been reported to use that Software.
+   *
+   * The information provided does not represent all possible technique
+   * use by a piece of Software, but rather a subset that is available
+   * solely through open source reporting.
+   */
+  def getSoftware(domain:MitreDomain):Seq[JsonElement] = {
+
+    val malware = getMalware(domain)
+    val tools = getTools(domain)
+
+    malware ++ tools
+
+  }
+
+  /**
+   * Extract object that refer to MITRE
+   * tactics
+   */
+  def getTactics(domain:MitreDomain):Seq[JsonElement] = {
+    getObjects(domain, Some("x-mitre-tactic"))
+  }
   /**
    * This method queries all STIX objects of a certain
    * domain, restricts objects to `attack-pattern`, and,
-   * if a specific `tactic` is provided, further restricts
+   * if a specific `phase` is provided, further restricts
    * to those, where the tactic is part of the kill chain
    * phases.
    *
@@ -77,49 +214,23 @@ object MitreClient extends BeatsLogging {
    * source name.
    */
   def getTechniques(domain:MitreDomain, source:Option[String],
-                    tactic:Option[String]):Seq[JsonElement] = {
+                    phase:Option[String]):Seq[JsonElement] = {
 
-    domain match {
-      case MitreDomains.CAPEC =>
-        throw new Exception("not implemented")
+    val objects = getObjects(domain, Some("attack-pattern"))
+    if (objects.isEmpty) return Seq.empty[JsonElement]
 
-      case MitreDomains.ENTERPRISE =>
-        /*
-         * STEP #1: Load current enterprise bundle
-         * from repository
-         */
-        val bundle = loadEnterprise()
-        /*
-         * STEP #2: Extract objects and restrict to
-         * those that specify `attack-pattern`
-         */
-        if (bundle.has("objects")) {
-          val message = s"STIX bundles does not describe `objects`"
-          error(message)
+    if (source.isEmpty && phase.isEmpty) return objects
 
-          return Seq.empty[JsonElement]
-        }
-
-        val objects = bundle.get("objects").getAsJsonArray
-        val aps = objects.filter(obj => {
-
-          val objJson = obj.getAsJsonObject
-          val objType = objJson.get("type").getAsString
-
-          (objType == "attack-pattern") && hasSource(objJson, source) && hasTactic(objJson, tactic)
-
-        })
-
-        aps.toSeq
-
-      case MitreDomains.ICS =>
-        throw new Exception("not implemented")
-
-      case MitreDomains.MOBILE =>
-        throw new Exception("not implemented")
-    }
+    objects.filter(obj => {
+      val objJson = obj.getAsJsonObject
+      hasSource(objJson, source) && hasPhase(objJson, phase)
+    })
 
   }
+  def getTools(domain:MitreDomain):Seq[JsonElement] = {
+    getObjects(domain, Some("tool"))
+  }
+
   /**
    * This method determines whether the provided STIX
    * object is a relationship of the specified type,
@@ -186,15 +297,15 @@ object MitreClient extends BeatsLogging {
    * This method determines whether the kill chain phases
    * of a certain STIX object references the provided tactic.
    */
-  private def hasTactic(objJson:JsonObject, tactic:Option[String]):Boolean = {
+  private def hasPhase(objJson:JsonObject, phase:Option[String]):Boolean = {
 
-    if (tactic.isEmpty) return true
+    if (phase.isEmpty) return true
     if (objJson.has("kill_chain_phases")) {
 
       val kcps = objJson.get("kill_chain_phases").getAsJsonArray
       val filtered = kcps.filter(kcp => {
         val kcpJson = kcp.getAsJsonObject
-        kcpJson.get("phase_name").getAsString == tactic.get
+        kcpJson.get("phase_name").getAsString == phase.get
       })
 
       filtered.nonEmpty
