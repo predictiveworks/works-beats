@@ -35,7 +35,12 @@ import de.kp.works.beats.transform.zeek.{StructType, ZeekReplace, ZeekSchema, Ze
  * meaningful event types or topics.
  */
 class ZeekTransform(format:BeatFormat=NGSI) extends FileTransform {
-
+  /*
+   * The default format = NGSI; however, also (flattened)
+   * JSON is supported. The latter format can be used to
+   * transform Zeek (network) events into tables and apply
+   * e.g., SIGMA rules.
+   */
   private val zeekCfg = BeatsConf.getBeatCfg(BeatsConf.ZEEK_CONF)
 
   override def transform(fileEvent:FileEvent, namespace:String):Option[JsonObject] = {
