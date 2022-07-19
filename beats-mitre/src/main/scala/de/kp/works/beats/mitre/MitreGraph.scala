@@ -125,10 +125,58 @@ object MitreGraph extends MitreConnect {
   val EDGES_TYPES = List(
     "relationship"
   )
-  def extractExternals(objects:Seq[JsonElement]):Unit = {
 
-  }
-  def extractKillChainPhases(objects:Seq[JsonObject]):Unit = {
+  val EXTERNAL_PROPS = List(
+    "description",
+    "external_id",
+    "source_name",
+    "url"
+  )
+
+  def extractExternals(objects:Seq[JsonElement]):Seq[JsonObject] = {
+
+    val externals = mutable.ArrayBuffer.empty[JsonObject]
+
+    objects.foreach(obj => {
+      val objJson = obj.getAsJsonObject
+      if (objJson.has("external_references")) {
+
+        val efs = objJson.get("external_references").getAsJsonArray
+        efs.foreach(ef => {
+          val efJson = ef.getAsJsonObject
+          /*
+           * An external reference is described as
+           * a pseudo STIX object, as it is associated
+           * to nodes via and edge.
+           */
+          val tokens = mutable.ArrayBuffer.empty[String]
+          val externalJson = new JsonObject
+
+          EXTERNAL_PROPS.foreach(prop => {
+            if (efJson.has(prop)) {
+              val value = efJson.get(prop).getAsString
+
+              tokens += value
+              externalJson.addProperty(prop, value)
+            } else {
+              tokens += ""
+              externalJson.addProperty(prop, "")
+            }
+          })
+          /*
+           * Build unique identifier
+           */
+          val ident = java.util.UUID.fromString(tokens.mkString("|")).toString
+          val id = s"external-reference--$ident"
+
+          externalJson.addProperty("id", id)
+          externals += externalJson
+
+        })
+      }
+    })
+
+    externals.distinct
 
   }
   /**

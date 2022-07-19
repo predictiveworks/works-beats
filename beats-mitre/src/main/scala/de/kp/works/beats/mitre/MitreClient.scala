@@ -155,6 +155,9 @@ abstract class MitreConnect extends BeatsLogging {
       val objJson = obj.getAsJsonObject
       val objType = objJson.get("type").getAsString
 
+      val notIdentity          = objType != "identity"
+      val notMarkingDefinition = objType != "marking-definition"
+
       if (objectType.isEmpty) {
         /*
          * For objects of the MITRE domain knowledge
@@ -173,11 +176,11 @@ abstract class MitreConnect extends BeatsLogging {
          * the `identity`object is ignored.
          *
          */
-        (objType != "marking-definition") && (objType != "identity")
+        notMarkingDefinition && notIdentity
       }
       else {
 
-        (objType == objectType.get) && (objType != "marking-definition") && (objType != "identity")
+        (objType == objectType.get) && notMarkingDefinition && notIdentity
 
       }
 
