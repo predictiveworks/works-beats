@@ -71,10 +71,12 @@ abstract class MitreConnect extends BeatsLogging {
   val OBJECT_TYPES = List(
     "attack-pattern",
     "course-of-action",
-    "identity",
+    /*
+     * "identity" is ignored
+     */
     "intrusion-set",
     "malware",
-    "marking-definition",
+    /* "marking-definition" is ignored */
     "relationship",
     "tool",
     "x-mitre-collection",
@@ -132,7 +134,11 @@ abstract class MitreConnect extends BeatsLogging {
     }
 
   }
-
+  /**
+   * The method extracts domain specific objects
+   * from the MITRE knowledge base and thereby
+   * excludes `identity` and `marking-definition`.
+   */
   def getObjects(domain:MitreDomain, objectType:Option[String]=None):Seq[JsonElement] = {
 
     val bundle = getBundle(domain)
@@ -144,18 +150,38 @@ abstract class MitreConnect extends BeatsLogging {
     }
 
     val objects = bundle.get("objects").getAsJsonArray
-    if (objectType.isEmpty) objects.toSeq
-    else {
-      objects.filter(obj => {
+    objects.filter(obj => {
 
-        val objJson = obj.getAsJsonObject
-        val objType = objJson.get("type").getAsString
+      val objJson = obj.getAsJsonObject
+      val objType = objJson.get("type").getAsString
 
-        objType == objectType.get
+      if (objectType.isEmpty) {
+        /*
+         * For objects of the MITRE domain knowledge
+         * basis, there is one `marking-definition`
+         * object, that contains the copyright
+         * statement for the respective entries.
+         *
+         * As this is no threat related information,
+         * the `marking-definition`object is ignored.
+         *
+         * For objects of the MITRE domain knowledge
+         * basis, there is one `identity` object,
+         * i.e., the MITRE organization.
+         *
+         * As this is no threat related information,
+         * the `identity`object is ignored.
+         *
+         */
+        (objType != "marking-definition") && (objType != "identity")
+      }
+      else {
 
-      })
+        (objType == objectType.get) && (objType != "marking-definition") && (objType != "identity")
 
-    }.toSeq
+      }
+
+    }).toSeq
 
   }
   def getCoursesOfAction(domain:MitreDomain):Seq[JsonElement] = {
