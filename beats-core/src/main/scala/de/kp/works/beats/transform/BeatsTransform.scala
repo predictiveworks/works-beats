@@ -28,6 +28,14 @@ import java.time.{ZoneId, ZoneOffset}
 import java.util.UUID
 import scala.collection.JavaConversions.iterableAsScalaIterable
 
+object BeatsFormats extends Enumeration {
+  type BeatFormat = Value
+
+  val JSON:BeatFormat = Value(1, "JSON")
+  val NGSI:BeatFormat = Value(2, "NGSI")
+
+}
+
 trait BeatsTransform extends BeatsLogging {
 
   protected val ACTION    = "action"

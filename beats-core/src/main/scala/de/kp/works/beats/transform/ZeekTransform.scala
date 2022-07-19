@@ -22,6 +22,7 @@ package de.kp.works.beats.transform
 import com.google.gson.{JsonObject, JsonParser}
 import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.events.FileEvent
+import de.kp.works.beats.transform.BeatsFormats.{BeatFormat, NGSI}
 import de.kp.works.beats.transform.zeek.{StructType, ZeekReplace, ZeekSchema, ZeekUtil}
 
 /**
@@ -33,7 +34,7 @@ import de.kp.works.beats.transform.zeek.{StructType, ZeekReplace, ZeekSchema, Ze
  * and no additional transformation must be applied to create
  * meaningful event types or topics.
  */
-class ZeekTransform extends FileTransform {
+class ZeekTransform(format:BeatFormat=NGSI) extends FileTransform {
 
   private val zeekCfg = BeatsConf.getBeatCfg(BeatsConf.ZEEK_CONF)
 
