@@ -64,26 +64,33 @@ class ZeekTransform(format:BeatFormat=NGSI) extends FileTransform {
        * Flatten the Zeek log event and harmonize the
        * specified attribute names
        */
-      val zeekJson = prepareEvent(table, fileEvent.eventData)
-      /*
-       * Transform the Zeek event into an NGSI compliant
-       * entity. This is achieved by leveraging the Zeek
-       * schema definitions
-       */
-      val schema = findSchema(table)
-      val ngsiEntity = buildNGSIEntity(table, schema, zeekJson)
-
-      val json = new JsonObject
+      val eventJson = flattenAndRename(table, fileEvent.eventData)
+      val zeekJson = new JsonObject
       /*
        * In case of a [FileEvent], the `eventType` specifies
        * the file name. It is enriched with the namespace,
        *
        * e.g `beat/zeek/dns.log`.
        */
-      json.addProperty("type", s"beat/$namespace/${fileEvent.eventType}")
-      json.addProperty("event", ngsiEntity.toString)
+      zeekJson.addProperty("type", s"beat/$namespace/${fileEvent.eventType}")
+      format match {
+        case BeatsFormats.JSON =>
+          zeekJson.addProperty("event", eventJson.toString)
 
-      Some(json)
+        case BeatsFormats.NGSI =>
+          /*
+           * Transform the Zeek event into an NGSI compliant
+           * entity. This is achieved by leveraging the Zeek
+           * schema definitions
+           */
+          val schema = findSchema(table)
+          val ngsiEntity = buildNGSIEntity(table, schema, eventJson)
+
+          zeekJson.addProperty("event", ngsiEntity.toString)
+
+      }
+
+      Some(zeekJson)
 
     }  catch {
       case t:Throwable =>
@@ -140,7 +147,7 @@ class ZeekTransform(format:BeatFormat=NGSI) extends FileTransform {
     schema
 
   }
-  private def prepareEvent(table:String, event:String):JsonObject = {
+  private def flattenAndRename(table:String, event:String):JsonObject = {
 
     val methods = ZeekReplace.getClass.getMethods
     val method = methods.filter(m => m.getName == s"replace_$table").head
