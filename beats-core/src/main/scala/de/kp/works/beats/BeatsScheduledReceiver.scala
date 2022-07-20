@@ -21,7 +21,8 @@ package de.kp.works.beats
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
-abstract class BeatsScheduledReceiver(interval:Int, numThreads:Int = 1) extends BeatsLogging {
+abstract class BeatsScheduledReceiver(timeInterval:Int, timeUnit:TimeUnit=TimeUnit.MILLISECONDS,
+                                      numThreads:Int = 1) extends BeatsLogging {
 
   private var executorService:ScheduledExecutorService = _
 
@@ -33,7 +34,7 @@ abstract class BeatsScheduledReceiver(interval:Int, numThreads:Int = 1) extends 
 
       executorService = Executors.newScheduledThreadPool(numThreads)
       executorService.scheduleAtFixedRate(getWorker, 0,
-        interval, TimeUnit.MILLISECONDS)
+        timeInterval, timeUnit)
 
     } catch {
       case _:Throwable => executorService.shutdown()
