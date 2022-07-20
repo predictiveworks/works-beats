@@ -22,8 +22,10 @@ package de.kp.works.beats.plc
 import de.kp.works.beats.BeatsScheduledReceiver
 import de.kp.works.beats.handler.OutputHandler
 
+import java.util.concurrent.TimeUnit
+
 class PlcReceiver(outputHandler:OutputHandler, interval:Int, numThreads:Int = 1)
-  extends BeatsScheduledReceiver(interval, numThreads) {
+  extends BeatsScheduledReceiver(interval, TimeUnit.MILLISECONDS, numThreads) {
 
   private val connector = new PlcConnector(outputHandler)
   /*

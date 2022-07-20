@@ -19,14 +19,48 @@ package de.kp.works.beats.plc
  *
  */
 
+import com.typesafe.config.ConfigObject
+import de.kp.works.beats.BeatsConf
+
+import scala.collection.JavaConversions.asScalaBuffer
+
 object PlcOptions {
 
-  def getPlcFields:Seq[PlcField] = ???
+  private val plcCfg = BeatsConf.getBeatCfg(BeatsConf.PLC_CONF)
+  private val receiverCfg = plcCfg.getConfig("receiver")
 
-  def getPlcId:String = ???
+  /**
+   * Method to retrieve the list of PLC fields that
+   * must be used to retrieve data
+   */
+  def getPlcFields:Seq[PlcField] = {
 
-  def getPlcType:String = ???
+    val values = receiverCfg.getList("fields")
+    values.map {
+      case configObject: ConfigObject =>
 
-  def getPlcUrl:String = ???
+        val field = configObject.toConfig
+        PlcField(fieldAddress = field.getString("address"), fieldName = field.getString("name"))
+
+      case _ =>
+        throw new Exception(s"PLC fields are not configured properly")
+    }
+
+  }
+  /**
+   * Method to retrieve the configured unique
+   * identifier of the supported PLC
+   */
+  def getPlcId:String = receiverCfg.getString("ident")
+  /**
+   * Method to retrieve the configured NGSI
+   * entity type of the supported PLC
+   */
+  def getPlcType:String = receiverCfg.getString("type")
+  /**
+   * Method to retrieve the endpoint of the
+   * configured and supported PLC
+   */
+  def getPlcUrl:String = receiverCfg.getString("endpoint")
 
 }
