@@ -164,12 +164,15 @@ object MitreGraph extends MitreConnect {
             }
           })
           /*
-           * Build unique identifier
+           * Build unique identifier `id` and
+           * object `type`
            */
           val ident = java.util.UUID.fromString(tokens.mkString("|")).toString
           val id = s"external-reference--$ident"
 
           externalJson.addProperty("id", id)
+          externalJson.addProperty("type", "external-reference")
+
           externals += externalJson
 
         })
@@ -218,11 +221,11 @@ object MitreGraph extends MitreConnect {
 
     val objects = getObjects(domain)
     /*
-     * STEP #1: Extract the unique identifiers
-     * of the nodes provided by the domain
-     * specific knowledge base
+     * STEP #1: Extract all external references
+     * as pseudo STIX objects and add to nodes
      */
-    val nodeIds = extractNodeIds(objects)
+    val externals = extractExternals(objects)
+    nodes ++= externals
     /*
      * STEP #2: Determine all MITRE nodes
      */
@@ -283,12 +286,43 @@ object MitreGraph extends MitreConnect {
 
       nodes += nodeJson
       /*
-       * Build edges from relation properties
+       * Build edges from relation properties: the current
+       * implementation is restricted to external references
        */
+      if (objJson.has("external_references")) {
+
+        val efs = objJson.get("external_references").getAsJsonArray
+        efs.foreach(ef => {
+          val efJson = ef.getAsJsonObject
+          /*
+           * An external reference is described as
+           * a pseudo STIX object, as it is associated
+           * to nodes via and edge.
+           */
+          val tokens = EXTERNAL_PROPS
+            .map(prop => {
+              if (efJson.has(prop)) efJson.get(prop).getAsString
+              else ""
+            })
+          /*
+           * Build unique identifier
+           */
+          val ident = java.util.UUID.fromString(tokens.mkString("|")).toString
+
+          val source_ref = objJson.get("id").getAsString
+          val target_ref = s"external-reference--$ident"
+
+          val edgeJson = new JsonObject
+          edgeJson.addProperty("src", source_ref)
+          edgeJson.addProperty("dst", target_ref)
+
+          edgeJson.addProperty("type", "has-reference")
+          edges += edgeJson
+
+        })
+      }
 
     })
-
-    // TODO
 
     (nodes, edges)
 

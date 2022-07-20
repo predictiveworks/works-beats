@@ -1,4 +1,5 @@
 package de.kp.works.beats.mitre
+
 /**
  * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -18,23 +19,19 @@ package de.kp.works.beats.mitre
  *
  */
 
-import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.BeatsScheduledReceiver
+import de.kp.works.beats.handler.OutputHandler
 
-object MitreOptions {
+import java.util.concurrent.TimeUnit
 
-  private val DEFAULT_CONFIDENCE = 75
+class MitreReceiver(outputHandler:OutputHandler, interval:Int, numThreads:Int = 1)
+  extends BeatsScheduledReceiver(interval, TimeUnit.DAYS, numThreads) {
 
-  private val cfg = BeatsConf.getBeatCfg(BeatsConf.MITRE_CONF)
-  private val receiverCfg = cfg.getConfig("receiver")
-  /*
-   * The confidence is a number between [0, 100],
-   * where 0 = unknown, and 100 = fully trusted
-   */
-  def getConfidenceLevel:Int = {
-    if (receiverCfg.hasPath("confidence"))
-      receiverCfg.getInt("confidence")
+  def getWorker:Runnable = new Runnable {
 
-    else DEFAULT_CONFIDENCE
-
+    override def run(): Unit = {
+      // TODO
+    }
   }
+
 }

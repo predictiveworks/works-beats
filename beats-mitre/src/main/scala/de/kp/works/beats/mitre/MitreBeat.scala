@@ -1,4 +1,5 @@
 package de.kp.works.beats.mitre
+
 /**
  * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -18,23 +19,23 @@ package de.kp.works.beats.mitre
  *
  */
 
-import de.kp.works.beats.BeatsConf
+import de.kp.works.beats.BaseBeat
 
-object MitreOptions {
+/**
+ * The [MitreBeat] is Akka based Http(s) microservice that manages
+ * MITRE domain knowledge bases, retrieves & transforms objects, and
+ * publishes to FIWARE, MQTT and SSE.
+ */
+object MitreBeat extends BaseBeat {
 
-  private val DEFAULT_CONFIDENCE = 75
+  override var programName: String = "MitreBeat"
+  override var programDesc: String = "Publish MITRE ATT&CK via multiple output channels."
 
-  private val cfg = BeatsConf.getBeatCfg(BeatsConf.MITRE_CONF)
-  private val receiverCfg = cfg.getConfig("receiver")
-  /*
-   * The confidence is a number between [0, 100],
-   * where 0 = unknown, and 100 = fully trusted
-   */
-  def getConfidenceLevel:Int = {
-    if (receiverCfg.hasPath("confidence"))
-      receiverCfg.getInt("confidence")
+  override def launch(args: Array[String]): Unit = {
 
-    else DEFAULT_CONFIDENCE
+    val service = new MitreService()
+    start(args, service)
 
   }
+
 }

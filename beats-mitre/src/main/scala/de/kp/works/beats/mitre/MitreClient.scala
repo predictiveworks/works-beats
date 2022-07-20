@@ -58,7 +58,9 @@ object MitreClient extends MitreConnect
 abstract class MitreConnect extends BeatsLogging {
 
   private val cfg = BeatsConf.getBeatCfg(MITRE_CONF)
-  private val base = cfg.getString("folder")
+  private val receiverCfg = cfg.getConfig("receiver")
+
+  private val base = receiverCfg.getString("folder")
 
   private val STIXv20 = s"$base/stixv2.0"
   private val STIXv21 = s"$base/stixv2.1"
