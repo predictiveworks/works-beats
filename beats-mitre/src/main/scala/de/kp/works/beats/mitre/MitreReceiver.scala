@@ -28,9 +28,19 @@ class MitreReceiver(outputHandler:OutputHandler, interval:Int, numThreads:Int = 
   extends BeatsScheduledReceiver(interval, TimeUnit.DAYS, numThreads) {
 
   def getWorker:Runnable = new Runnable {
+    /*
+     * Initialize the loader for the set of MITRE
+     * domain knowledge bases
+     */
+    private val loader = new MitreLoader(outputHandler)
 
     override def run(): Unit = {
-      // TODO
+
+      val message = s"MITRE Receiver worker started."
+      info(message)
+
+      loader.start()
+
     }
   }
 
