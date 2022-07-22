@@ -60,8 +60,18 @@ object MitreGraph extends MitreConnect {
      */
     "tool",
     "x-mitre-data-component",
-    "x-mitre-data-source",
-    "x-mitre-tactic")
+    "x-mitre-data-source"
+    /*
+     * A MITRE adversary tactic is considered a
+     * node that is related to other MITRE objects,
+     * and referenced via the kill chain phase name.
+     *
+     * Therefore, the tactic nodes are excluded from
+     * the node extracted.
+     *
+     * - "x-mitre-tactic"
+     */
+    )
 
   val NODE_BASE_PROPERTIES = List(
     "created",
@@ -79,12 +89,19 @@ object MitreGraph extends MitreConnect {
 
   val NODE_LIST_PROPERTIES = List(
     "aliases",
-    "kill_chain_phases",
     "x_mitre_aliases",
     "x_mitre_contributors",
     "x_mitre_data_sources",
+    /*
+     * List of defense measures that can be bypassed
+     * e.g., by an attack-pattern
+     */
     "x_mitre_defense_bypassed",
     "x_mitre_domains",
+    /*
+     * The list of platforms like Linux that can
+     * be threatened by e.g., an attack-pattern
+     */
     "x_mitre_platforms"
   )
 
@@ -99,7 +116,8 @@ object MitreGraph extends MitreConnect {
      *
      * - "created_by_ref",
      */
-    "external_references"
+    "external_references",
+    "kill_chain_phases",
     /*
      * For nodes of the MITRE domain knowledge
      * basis, there is one `marking-definition`
@@ -110,7 +128,9 @@ object MitreGraph extends MitreConnect {
      * the `marking-definition`object is ignored.
      *
      * - "object_marking_refs",
-     *
+     */
+    "x_mitre_data_source_ref" // Used to reference a data source in a data component
+    /*
      * For nodes of the MITRE domain knowledge
      * basis, there is one `identity` object,
      * i.e., the MITRE organization.
@@ -126,12 +146,38 @@ object MitreGraph extends MitreConnect {
     "relationship"
   )
 
+  val EDGE_BASE_PROPERTIES = List(
+    "created",
+    "description",
+    "id",
+    "modified",
+    "relationship_type",
+    "source_ref",
+    "spec_version",
+    "target_ref",
+    "type",
+    "x_mitre_attack_spec_version",
+    "x_mitre_modified_by_ref",
+    "x_mitre_version")
+
+  val EDGE_LIST_PROPERTIES = List(
+    "x_mitre_domains"
+  )
+
+  val EDGE_RELATION_PROPERTIES = List(
+    "created_by_ref",
+    "external_references",
+    "object_marking_refs"
+  )
   val EXTERNAL_PROPS = List(
     "description",
     "external_id",
     "source_name",
     "url"
   )
+  /*
+   *
+   */
 
   def extractExternals(objects:Seq[JsonElement]):Seq[JsonObject] = {
 
@@ -190,9 +236,11 @@ object MitreGraph extends MitreConnect {
    * whether a certain referenced object is part
    * of the provided domain.
    */
-  def extractNodeIds(objects:Seq[JsonElement]):Seq[String] = {
+  def extractNodeIds(domain:MitreDomain):Seq[String] = {
 
     val nodeIds = mutable.ArrayBuffer.empty[String]
+
+    val objects = getObjects(domain)
     objects.foreach(obj => {
 
       val objJson = obj.getAsJsonObject
@@ -325,6 +373,85 @@ object MitreGraph extends MitreConnect {
     })
 
     (nodes, edges)
+
+  }
+
+  def extractEdges(domain:MitreDomain):Seq[JsonElement] = {
+
+    val mustHaves = List("id", "relationship_type", "type")
+
+    val edges = mutable.ArrayBuffer.empty[JsonObject]
+    /*
+     * Retrieve all node identifiers
+     */
+    val nodeIds = extractNodeIds(domain)
+    val objects = getObjects(domain, Some("relationship"))
+      .filter(obj => {
+
+        val objJson = obj.getAsJsonObject
+        val deprecated = isDeprecated(objJson)
+
+        val source = objJson.get("source_ref").getAsString
+        val hasSource = nodeIds.contains(source)
+
+        val target = objJson.get("target_ref").getAsString
+        val hasTarget = nodeIds.contains(target)
+
+        hasSource && hasTarget && (!deprecated)
+
+      })
+    /*
+     * STEP #2: Determine all MITRE edges
+     */
+    objects.foreach(obj => {
+
+      val objJson = obj.getAsJsonObject
+      val edgeJson = new JsonObject
+      /*
+       * Assign base and list properties
+       * to the nodeJSON
+       */
+      (EDGE_BASE_PROPERTIES ++ EDGE_LIST_PROPERTIES)
+        .foreach(prop => {
+          /*
+           * Determine whether the MITRE domain
+           * object contains one of must have
+           * properties
+           */
+          if (mustHaves.contains(prop)) {
+
+            if (!objJson.has(prop)) {
+              val message = s"MITRE domain object detected that does not contain `$prop` field."
+              error(message)
+
+              throw new Exception(message)
+            }
+
+          }
+
+          val value = if (objJson.has(prop)) objJson.get(prop) else JsonNull.INSTANCE
+
+          prop match {
+            case "source_ref" =>
+              edgeJson.add("src", value)
+
+            case "target_ref" =>
+              edgeJson.add("dst", value)
+
+            case "relation_type" =>
+              edgeJson.add("type", value)
+
+            case _ =>
+              edgeJson.add(prop, value)
+          }
+
+        })
+
+      edges += edgeJson
+
+    })
+
+    edges
 
   }
 }

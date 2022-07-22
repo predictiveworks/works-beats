@@ -73,7 +73,7 @@ object MitreLogs {
         if (logs.contains(id)) {
 
           val currentLog = logs(id)
-          if (modified > currentLog) {
+          if (modified > currentLog.modified) {
             /*
              * This case describes that the current version
              * of the object is modified after the last

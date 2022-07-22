@@ -227,9 +227,21 @@ abstract class MitreConnect extends BeatsLogging {
   }
 
   /**
-   * Extract object that refer to MITRE
-   * tactics
-   */
+   * Extract object that refer to MITRE tactics:
+   *
+   * The current ENTERPRISE domain specifies 14 adversary
+   * tactics, where the `x_mitre_shortname` of tactic is
+   * used as phase name of a kill chain phase.
+   *
+   * The current ICS domain specifies 11 adversary tactics,
+   * with the same mapping with respect to the kill chain
+   * phases.
+   *
+   * The current MOBILE domain specifies 14 adversary tactics.
+   *
+   * Note: A certain attack-pattern can be directly linked
+   * to a certain tactic
+  */
   def getTactics(domain:MitreDomain):Seq[JsonElement] = {
     getObjects(domain, Some("x-mitre-tactic"))
   }
@@ -293,7 +305,7 @@ abstract class MitreConnect extends BeatsLogging {
 
   }
 
-  private def isDeprecated(objJson:JsonObject):Boolean = {
+  def isDeprecated(objJson:JsonObject):Boolean = {
 
     var deprecated = false
     var revoked = false
