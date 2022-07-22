@@ -24,8 +24,14 @@ object MitreRelations extends MitreConnect {
 
   def main(args:Array[String]):Unit = {
 
-    val result = attackPatterns(MitreDomains.ENTERPRISE)
+    //val result = attackPatterns(MitreDomains.ENTERPRISE)
+    //result.foreach(println)
+
+    val result = dataSources(MitreDomains.ENTERPRISE)
+      .sortBy{case(_, source_name, _, _, _) => source_name}
+
     result.foreach(println)
+
 
   }
 
@@ -80,6 +86,51 @@ object MitreRelations extends MitreConnect {
       .map{case(target, values) =>
         (target, values.map{case (source, predicate, _) => (source,predicate)})
       }
+
+    relations
+
+  }
+  /**
+   * Data Sources and Data Components represent data
+   * which can be used to detect techniques (attack
+   * patterns)
+   */
+  def dataSources(domain:MitreDomain):Seq[(String, String, String, String, String)] = {
+    /*
+     * STEP #1: Extract all MITRE data sources
+     * and data components
+     */
+    val dataSources = getObjects(domain, Some("x-mitre-data-source"))
+      /*
+       * The extracted data sources are transformed
+       * into a lookup data structured
+       */
+      .map(obj => {
+
+        val objJson = obj.getAsJsonObject
+        val id = objJson.get("id").getAsString
+
+        (id, objJson)
+
+      }).toMap
+
+    val dataComponents = getObjects(domain, Some("x-mitre-data-component"))
+    /*
+     * STEP #2: Data components are transformed
+     * into a named triple representation
+     */
+    val relations = dataComponents.map(obj => {
+
+      val objJson = obj.getAsJsonObject
+
+      val target_ref = objJson.get("id").getAsString
+      val target_name = objJson.get("name").getAsString
+
+      val source_ref = objJson.get("x_mitre_data_source_ref").getAsString
+      val source_name = dataSources(source_ref).get("name").getAsString
+
+      (source_ref, source_name, "includes", target_name, target_ref)
+    })
 
     relations
 

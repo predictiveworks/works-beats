@@ -60,6 +60,17 @@ object MitreGraph extends MitreConnect {
      */
     "tool",
     "x-mitre-data-component",
+    /*
+     * Data sources represent the various subjects/topics
+     * of information that can be collected by sensors/logs.
+     *
+     * Data sources also include data components, which identify
+     * specific properties/values of a data source relevant to
+     * detecting a given ATT&CK technique or sub-technique.
+     *
+     * MITRE recommends to monitor data components to detect
+     * attack patterns.
+     */
     "x-mitre-data-source"
     /*
      * A MITRE adversary tactic is considered a
