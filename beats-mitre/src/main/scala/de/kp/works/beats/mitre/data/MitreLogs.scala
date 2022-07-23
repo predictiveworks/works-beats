@@ -1,4 +1,4 @@
-package de.kp.works.beats.mitre
+package de.kp.works.beats.mitre.data
 
 /**
  * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,6 +20,7 @@ package de.kp.works.beats.mitre
  */
 
 import com.google.gson.JsonElement
+import de.kp.works.beats.mitre.MitreDomains
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
 
 import java.time.{Instant, ZoneId}

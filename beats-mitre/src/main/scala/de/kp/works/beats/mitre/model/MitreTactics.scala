@@ -1,7 +1,7 @@
-package de.kp.works.beats.mitre
+package de.kp.works.beats.mitre.model
 
 /**
- * Copyright (c) 2020 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
+ * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +21,7 @@ package de.kp.works.beats.mitre
 
 import com.google.gson.{JsonElement, JsonNull}
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
+import de.kp.works.beats.mitre.{MitreConnect, MitreDomains}
 
 import scala.collection.mutable
 
@@ -32,7 +33,7 @@ object MitreTactics extends MitreConnect {
 
   load()
 
-  def load():Unit = {
+  def load(): Unit = {
 
     loadTactics(MitreDomains.ENTERPRISE, ENTERPRISE)
     loadTactics(MitreDomains.ICS, ICS)
@@ -40,7 +41,7 @@ object MitreTactics extends MitreConnect {
 
   }
 
-  def getTactic(domain:MitreDomain, shortName:String):JsonElement = {
+  def getTactic(domain: MitreDomain, shortName: String): JsonElement = {
 
     val logs = domain match {
       case MitreDomains.ENTERPRISE =>
@@ -60,10 +61,10 @@ object MitreTactics extends MitreConnect {
 
   }
 
-  def loadTactics(domain:MitreDomain,
-                  logs:mutable.HashMap[String, JsonElement]):Unit = {
+  def loadTactics(domain: MitreDomain,
+                  logs: mutable.HashMap[String, JsonElement]): Unit = {
 
-    val tactics = getTactics(domain=domain)
+    val tactics = getTactics(domain = domain)
     tactics.foreach(tactic => {
 
       val shortName = tactic.getAsJsonObject

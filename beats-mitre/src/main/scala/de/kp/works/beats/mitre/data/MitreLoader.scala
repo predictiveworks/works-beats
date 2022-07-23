@@ -1,4 +1,4 @@
-package de.kp.works.beats.mitre
+package de.kp.works.beats.mitre.data
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -25,6 +25,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import de.kp.works.beats.BeatsLogging
 import de.kp.works.beats.handler.OutputHandler
+import de.kp.works.beats.mitre.MitreActor
 import de.kp.works.beats.mitre.MitreDomains._
 
 import scala.concurrent.ExecutionContextExecutor

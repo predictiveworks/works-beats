@@ -21,6 +21,7 @@ package de.kp.works.beats.mitre
 
 import de.kp.works.beats.BeatsScheduledReceiver
 import de.kp.works.beats.handler.OutputHandler
+import de.kp.works.beats.mitre.data.MitreLoader
 
 import java.util.concurrent.TimeUnit
 

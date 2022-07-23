@@ -21,6 +21,7 @@ package de.kp.works.beats.mitre
 import com.google.gson.{JsonElement, JsonObject, JsonParser}
 import de.kp.works.beats.BeatsConf.MITRE_CONF
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
+import de.kp.works.beats.mitre.data.MitreStore
 import de.kp.works.beats.{BeatsConf, BeatsLogging}
 
 import java.io.File
@@ -142,7 +143,16 @@ abstract class MitreConnect extends BeatsLogging {
    * excludes `identity` and `marking-definition`.
    */
   def getObjects(domain:MitreDomain, objectType:Option[String]=None):Seq[JsonElement] = {
-
+    /*
+     * Check whether the provided domain
+     * is available in the memory store
+     */
+    val storeEntries = MitreStore.get(domain)
+    if (storeEntries.nonEmpty) return storeEntries
+    /*
+     * Load domain specific bundle from
+     * file and extract associated objects
+     */
     val bundle = getBundle(domain)
     if (!bundle.has("objects")) {
       val message = s"STIX bundles does not describe `objects`"
@@ -152,7 +162,7 @@ abstract class MitreConnect extends BeatsLogging {
     }
 
     val objects = bundle.get("objects").getAsJsonArray
-    objects.filter(obj => {
+    val fileEntries = objects.filter(obj => {
 
       val objJson = obj.getAsJsonObject
       val objType = objJson.get("type").getAsString
@@ -187,6 +197,15 @@ abstract class MitreConnect extends BeatsLogging {
       }
 
     }).toSeq
+    /*
+     * Register domain specific entries in the
+     * memory store
+     */
+    MitreStore.set(domain, fileEntries)
+    /*
+     * Return file entries
+     */
+    fileEntries
 
   }
   def getCoursesOfAction(domain:MitreDomain):Seq[JsonElement] = {
