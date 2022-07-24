@@ -21,7 +21,6 @@ package de.kp.works.beats
 
 import akka.NotUsed
 import akka.actor.ActorRef
-import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
@@ -49,7 +48,8 @@ object BeatsActors {
  * [BeatsRoutes] supports the SSE route of the
  * WorksBeat service.
  */
-class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, NotUsed]) extends BeatsHttp {
+class BeatsRoutes(actors:Map[String,ActorRef],
+                  source:Source[ServerSentEvent, NotUsed]) extends BeatsHttp(source) {
 
   import BeatsActors._
 
@@ -63,26 +63,6 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
     postHealth ~
     postSemantics
 
-  }
-
-  /**
-   * This is the Server Sent Event route; the route
-   * is harmonized with the Sensor Beat SSE route
-   */
-  protected def getStream:Route = {
-
-    path("beat" / "stream") {
-      options {
-        extractOptions
-      } ~
-      Directives.get {
-        addCors(
-          complete {
-            source
-          }
-        )
-      }
-    }
   }
   /**
    * This route provides access to the health status

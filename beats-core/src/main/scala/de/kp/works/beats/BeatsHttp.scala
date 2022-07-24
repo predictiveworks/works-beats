@@ -19,11 +19,15 @@ package de.kp.works.beats
  *
  */
 
+import akka.NotUsed
 import akka.actor.ActorRef
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.model.{HttpProtocols, HttpResponse, StatusCodes}
-import akka.http.scaladsl.server.Directives.{complete, extractRequest, path, post, separateOnSlashes, toStrictEntity}
-import akka.http.scaladsl.server.{RequestContext, Route, RouteResult}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.{Directives, RequestContext, Route, RouteResult}
 import akka.pattern.ask
+import akka.stream.scaladsl.Source
 import akka.util.{ByteString, Timeout}
 import com.google.gson.JsonObject
 
@@ -31,12 +35,32 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
-trait BeatsHttp extends CORS {
+abstract class BeatsHttp(source:Source[ServerSentEvent, NotUsed]) extends CORS {
   /**
    * Common timeout for all Akka connections
    */
   val duration: FiniteDuration = 15.seconds
   implicit val timeout: Timeout = Timeout(duration)
+
+  /**
+   * This is the Server Sent Event route; the route
+   * is harmonized with the Sensor Beat SSE route
+   */
+  def getStream:Route = {
+
+    path("beat" / "stream") {
+      options {
+        extractOptions
+      } ~
+      Directives.get {
+        addCors(
+          complete {
+            source
+          }
+        )
+      }
+    }
+  }
 
   /*******************************
    *
