@@ -19,10 +19,11 @@ package de.kp.works.beats.mitre.data
  *
  */
 
-import com.google.gson.JsonElement
+import com.google.gson.{JsonArray, JsonElement}
 import de.kp.works.beats.mitre.MitreDomains
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
 
+import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.mutable
 
 object MitreStore {
@@ -40,7 +41,7 @@ object MitreStore {
 
   }
 
-  def set(domain: MitreDomain, objects: Seq[JsonElement]): Unit = {
+  def set(domain: MitreDomain, objects: JsonArray): Unit = {
 
     val store = getStore(domain)
     objects.foreach(obj => {

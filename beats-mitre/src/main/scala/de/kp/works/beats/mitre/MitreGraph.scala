@@ -18,8 +18,9 @@ package de.kp.works.beats.mitre
  *
  */
 
-import com.google.gson.{JsonArray, JsonElement, JsonNull, JsonObject}
+import com.google.gson.{JsonElement, JsonNull, JsonObject}
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
+import de.kp.works.beats.mitre.model.MitreTactics
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.mutable
@@ -313,30 +314,6 @@ object MitreGraph extends MitreConnect {
             }
 
           }
-          /*
-           * The kill chain name of the MITRE kill chain
-           * is always `mitre-attack`. It is introduced to
-           * distinguish the respective phase from other
-           * kill chains.
-           *
-           * Below the kill chain phases are flattened,
-           * using an urn like format
-           */
-          if (objJson.has("kill_chain_phases")) {
-
-            val formatted = new JsonArray
-            objJson.remove("kill_chain_phases").getAsJsonArray
-              .foreach(kcp => {
-                val kcpJson = kcp.getAsJsonObject
-
-                val kcn = kcpJson.get("kill_chain_name").getAsString
-                val pn  = kcpJson.get("phase_name").getAsString
-
-                formatted.add(s"$kcn:$pn")
-              })
-
-            objJson.add("kill_chain_phases", formatted)
-          }
 
           val value = if (objJson.has(prop)) objJson.get(prop) else JsonNull.INSTANCE
           nodeJson.add(prop, value)
@@ -347,6 +324,7 @@ object MitreGraph extends MitreConnect {
       /*
        * Build edges from relation properties: the current
        * implementation is restricted to external references
+       * and kill chain phases (MITRE tactics)
        */
       if (objJson.has("external_references")) {
 
@@ -380,13 +358,79 @@ object MitreGraph extends MitreConnect {
 
         })
       }
+     /*
+      * The `phase_name` of a certain kill chain phase
+      * is equal to the short name of a certain MITRE
+      * tactics
+      */
+     if (objJson.has("kill_chain_phases")) {
+
+       val kcps = objJson.get("kill_chain_phases").getAsJsonArray
+       kcps.foreach(kcp => {
+
+         val kcpJson = kcp.getAsJsonObject
+         val phaseName  = kcpJson.get("phase_name").getAsString
+         /*
+          * Retrieve MITRE tactic and build additional
+          * relationship `has-technique` between tactic
+          * and MITRE object (attack pattern)
+          */
+         val tactic = MitreTactics.getTacticByName(domain, phaseName)
+         if (!tactic.isJsonNull) {
+
+           val source_ref = tactic.getAsJsonObject.get("id").getAsString
+           val target_ref = objJson.get("id").getAsString
+
+           val edgeJson = new JsonObject
+           edgeJson.addProperty("src", source_ref)
+           edgeJson.addProperty("dst", target_ref)
+
+           edgeJson.addProperty("type", "has-technique")
+           edges += edgeJson
+
+         }
+
+       })
+
+     }
 
     })
 
     (nodes, edges)
 
   }
-
+  /**
+   * This method extracts the following edges:
+   *
+   * ENTERPRISE:
+   *
+   * attack-pattern-[subtechnique-of]->attack-pattern
+   * course-of-action-[mitigates]->attack-pattern
+   * intrusion-set-[uses]->attack-pattern
+   * intrusion-set-[uses]->malware
+   * intrusion-set-[uses]->tool
+   * malware-[uses]->attack-pattern
+   * tool-[uses]->attack-pattern
+   * x-mitre-data-component-[detects]->attack-pattern
+   *
+   * ICS:
+   *
+   * course-of-action-[mitigates]->attack-pattern
+   * intrusion-set-[uses]->attack-pattern
+   * intrusion-set-[uses]->malware
+   * malware-[uses]->attack-pattern
+   * x-mitre-data-component-[detects]->attack-pattern
+   *
+   * MOBILE:
+   *
+   * attack-pattern-[subtechnique-of]->attack-pattern
+   * course-of-action-[mitigates]->attack-pattern
+   * intrusion-set-[uses]->attack-pattern
+   * intrusion-set-[uses]->malware
+   * malware-[uses]->attack-pattern
+   * tool-[uses]->attack-pattern
+   *
+   */
   def extractEdges(domain:MitreDomain):Seq[JsonElement] = {
 
     val mustHaves = List("id", "relationship_type", "type")
@@ -401,6 +445,8 @@ object MitreGraph extends MitreConnect {
 
         val objJson = obj.getAsJsonObject
         val deprecated = isDeprecated(objJson)
+        val revokedBy = objJson.get("relationship_type").getAsString == "revoked-by"
+
 
         val source = objJson.get("source_ref").getAsString
         val hasSource = nodeIds.contains(source)

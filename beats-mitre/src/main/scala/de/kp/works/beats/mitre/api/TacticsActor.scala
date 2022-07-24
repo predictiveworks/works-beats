@@ -21,8 +21,11 @@ package de.kp.works.beats.mitre.api
 
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.SourceQueueWithComplete
+import com.google.gson.JsonArray
 import de.kp.works.beats.BeatsConf
 import de.kp.works.beats.actors.BeatsActor
+import de.kp.works.beats.mitre.MitreDomains
+import de.kp.works.beats.mitre.model.MitreTactics
 /**
  * [TacticsActor] is a MitreBeat API actor that offers
  * domain specific tactics. Tactics represent one of the
@@ -31,6 +34,79 @@ import de.kp.works.beats.actors.BeatsActor
 class TacticsActor(queue: SourceQueueWithComplete[String])
   extends BeatsActor(BeatsConf.MITRE_CONF, queue) {
 
-  override def execute(request: HttpRequest): String = ???
+  private val emptyMessage = new JsonArray
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+
+      warn(ApiMessages.invalidRequest)
+      return emptyMessage.toString
+
+    }
+
+    val req = mapper.readValue(json.toString, classOf[TacticsReq])
+    if (req.domain.isEmpty) {
+
+      warn(ApiMessages.invalidDomain)
+      return emptyMessage.toString
+
+    }
+    /*
+     * Supported requests either retrieve all MITRE tactics
+     * of a certain domain, or, get a certain tactic by id,
+     * or, short name
+     */
+    try {
+
+      val result = new JsonArray
+
+      val domain = MitreDomains.withName(req.domain)
+      if (req.id.isEmpty) {
+
+        if (req.shortName.isEmpty) {
+          /*
+           * Retrieve the list of all tactics of
+           * a certain MITRE domain
+           */
+          val tactics = MitreTactics.getAllTactics(domain)
+          tactics.foreach(result.add)
+
+          result.toString
+
+        } else {
+          /*
+           * Retrieve the tactic that is referenced
+           * by its short name
+           */
+          val tactic = MitreTactics.getTacticByName(domain, req.shortName.get)
+          if (tactic.isJsonNull) return result.toString
+
+          result.add(tactic)
+          result.toString
+
+        }
+
+      } else {
+        /*
+         * A request with a provided `id` always
+         * returns the referenced tactic
+         */
+        val tactic = MitreTactics.getTacticById(domain, req.id.get)
+        if (tactic.isJsonNull) return result.toString
+
+        result.add(tactic)
+        result.toString
+
+      }
+
+    } catch {
+      case t:Throwable =>
+        error(ApiMessages.failedTacticsReq(t))
+        emptyMessage.toString
+    }
+
+  }
 
 }

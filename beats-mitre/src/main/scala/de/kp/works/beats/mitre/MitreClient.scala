@@ -147,67 +147,66 @@ abstract class MitreConnect extends BeatsLogging {
      * Check whether the provided domain
      * is available in the memory store
      */
-    val storeEntries = MitreStore.get(domain)
-    if (storeEntries.nonEmpty) return storeEntries
-    /*
-     * Load domain specific bundle from
-     * file and extract associated objects
-     */
-    val bundle = getBundle(domain)
-    if (!bundle.has("objects")) {
-      val message = s"STIX bundles does not describe `objects`"
-      error(message)
+    var entries = MitreStore.get(domain)
+    if (entries.isEmpty) {
+      /*
+       * Load domain specific bundle from
+       * file and extract associated objects
+       */
+      val bundle = getBundle(domain)
+      if (!bundle.has("objects")) {
+        val message = s"STIX bundles does not describe `objects`"
+        error(message)
 
-      return Seq.empty[JsonElement]
+        return Seq.empty[JsonElement]
+      }
+
+      val objects = bundle.get("objects").getAsJsonArray
+      MitreStore.set(domain, objects)
+
+      entries = MitreStore.get(domain)
     }
 
-    val objects = bundle.get("objects").getAsJsonArray
-    val fileEntries = objects.filter(obj => {
-
-      val objJson = obj.getAsJsonObject
-      val objType = objJson.get("type").getAsString
-
-      val notIdentity          = objType != "identity"
-      val notMarkingDefinition = objType != "marking-definition"
-
-      if (objectType.isEmpty) {
-        /*
-         * For objects of the MITRE domain knowledge
-         * basis, there is one `marking-definition`
-         * object, that contains the copyright
-         * statement for the respective entries.
-         *
-         * As this is no threat related information,
-         * the `marking-definition`object is ignored.
-         *
-         * For objects of the MITRE domain knowledge
-         * basis, there is one `identity` object,
-         * i.e., the MITRE organization.
-         *
-         * As this is no threat related information,
-         * the `identity`object is ignored.
-         *
-         */
-        notMarkingDefinition && notIdentity
-      }
-      else {
-
-        (objType == objectType.get) && notMarkingDefinition && notIdentity
-
-      }
-
-    }).toSeq
-    /*
-     * Register domain specific entries in the
-     * memory store
-     */
-    MitreStore.set(domain, fileEntries)
-    /*
-     * Return file entries
-     */
-    fileEntries
+    entries.filter(obj => isObject(obj, objectType))
 
   }
+
+  def isObject(obj:JsonElement, objectType:Option[String]=None):Boolean = {
+
+    val objJson = obj.getAsJsonObject
+    val objType = objJson.get("type").getAsString
+
+    val notIdentity          = objType != "identity"
+    val notMarkingDefinition = objType != "marking-definition"
+
+    if (objectType.isEmpty) {
+      /*
+       * For objects of the MITRE domain knowledge
+       * basis, there is one `marking-definition`
+       * object, that contains the copyright
+       * statement for the respective entries.
+       *
+       * As this is no threat related information,
+       * the `marking-definition`object is ignored.
+       *
+       * For objects of the MITRE domain knowledge
+       * basis, there is one `identity` object,
+       * i.e., the MITRE organization.
+       *
+       * As this is no threat related information,
+       * the `identity`object is ignored.
+       *
+       */
+      notMarkingDefinition && notIdentity
+    }
+    else {
+
+      (objType == objectType.get) && notMarkingDefinition && notIdentity
+
+    }
+
+  }
+
   def getCoursesOfAction(domain:MitreDomain):Seq[JsonElement] = {
     getObjects(domain, Some("course-of-action"))
   }
