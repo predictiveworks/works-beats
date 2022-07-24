@@ -72,7 +72,9 @@ object MitreLogs {
 
         val logs = getLogs(domain)
         if (logs.contains(id)) {
-
+          /*
+           * The provided object already exists
+           */
           val currentLog = logs(id)
           if (modified > currentLog.modified) {
             /*
@@ -82,6 +84,11 @@ object MitreLogs {
              * object to the `deltaObjects`.
              */
             logs += id -> TimeLog(created, modified)
+            /*
+             * Also assign this object to the list of
+             * `deltaObjects`
+             */
+            objJson.addProperty("action", "update")
             deltaObjects += obj
           }
 
@@ -96,7 +103,8 @@ object MitreLogs {
            * Also assign this object to the list of
            * `deltaObjects`
            */
-          deltaObjects += obj
+          objJson.addProperty("action", "create")
+          deltaObjects += objJson
         }
 
       }

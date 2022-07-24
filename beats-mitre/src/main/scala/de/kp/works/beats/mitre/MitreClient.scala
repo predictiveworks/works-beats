@@ -142,13 +142,20 @@ abstract class MitreConnect extends BeatsLogging {
    * from the MITRE knowledge base and thereby
    * excludes `identity` and `marking-definition`.
    */
-  def getObjects(domain:MitreDomain, objectType:Option[String]=None):Seq[JsonElement] = {
+  def getObjects(domain:MitreDomain, objectType:Option[String]=None, load:Boolean = false):Seq[JsonElement] = {
     /*
      * Check whether the provided domain
      * is available in the memory store
      */
     var entries = MitreStore.get(domain)
-    if (entries.isEmpty) {
+    /*
+     * In case there are no entries available
+     * in the memory store, or, entries must
+     * be loaded (load = true) from the file
+     * system, retrieve STIX bundle and extract
+     * objects.
+     */
+    if (entries.isEmpty || load) {
       /*
        * Load domain specific bundle from
        * file and extract associated objects

@@ -103,7 +103,6 @@ object MitreGraph extends MitreConnect {
     "aliases",
     "x_mitre_aliases",
     "x_mitre_contributors",
-    "x_mitre_data_sources",
     /*
      * List of defense measures that can be bypassed
      * e.g., by an attack-pattern
@@ -141,7 +140,8 @@ object MitreGraph extends MitreConnect {
      *
      * - "object_marking_refs",
      */
-    "x_mitre_data_source_ref" // Used to reference a data source in a data component
+    "x_mitre_data_source_ref", // Used to reference a data source in a data component
+    "x_mitre_data_sources"
     /*
      * For nodes of the MITRE domain knowledge
      * basis, there is one `identity` object,
@@ -187,9 +187,6 @@ object MitreGraph extends MitreConnect {
     "source_name",
     "url"
   )
-  /*
-   *
-   */
 
   def extractExternals(objects:Seq[JsonElement]):Seq[JsonObject] = {
 
@@ -289,7 +286,7 @@ object MitreGraph extends MitreConnect {
     /*
      * STEP #2: Determine all MITRE nodes
      */
-     objects.foreach(obj => {
+    objects.foreach(obj => {
 
       val objJson = obj.getAsJsonObject
       val nodeJson = new JsonObject
@@ -358,41 +355,71 @@ object MitreGraph extends MitreConnect {
 
         })
       }
-     /*
-      * The `phase_name` of a certain kill chain phase
-      * is equal to the short name of a certain MITRE
-      * tactics
-      */
-     if (objJson.has("kill_chain_phases")) {
+      /*
+       * The `phase_name` of a certain kill chain phase
+       * is equal to the short name of a certain MITRE
+       * tactics
+       */
+      if (objJson.has("kill_chain_phases")) {
 
-       val kcps = objJson.get("kill_chain_phases").getAsJsonArray
-       kcps.foreach(kcp => {
+        val kcps = objJson.get("kill_chain_phases").getAsJsonArray
+        kcps.foreach(kcp => {
 
-         val kcpJson = kcp.getAsJsonObject
-         val phaseName  = kcpJson.get("phase_name").getAsString
-         /*
-          * Retrieve MITRE tactic and build additional
-          * relationship `has-technique` between tactic
-          * and MITRE object (attack pattern)
-          */
-         val tactic = MitreTactics.getTacticByName(domain, phaseName)
-         if (!tactic.isJsonNull) {
+          val kcpJson = kcp.getAsJsonObject
+          val phaseName = kcpJson.get("phase_name").getAsString
+          /*
+           * Retrieve MITRE tactic and build additional
+           * relationship `has-technique` between tactic
+           * and MITRE object (attack pattern)
+           */
+          val tactic = MitreTactics.getTacticByName(domain, phaseName)
+          if (!tactic.isJsonNull) {
 
-           val source_ref = tactic.getAsJsonObject.get("id").getAsString
-           val target_ref = objJson.get("id").getAsString
+            val source_ref = tactic.getAsJsonObject.get("id").getAsString
+            val target_ref = objJson.get("id").getAsString
 
-           val edgeJson = new JsonObject
-           edgeJson.addProperty("src", source_ref)
-           edgeJson.addProperty("dst", target_ref)
+            val edgeJson = new JsonObject
+            edgeJson.addProperty("src", source_ref)
+            edgeJson.addProperty("dst", target_ref)
 
-           edgeJson.addProperty("type", "has-technique")
-           edges += edgeJson
+            edgeJson.addProperty("type", "has-technique")
+            edges += edgeJson
 
-         }
+          }
 
-       })
+        })
 
-     }
+      }
+      /*
+       * The MITRE domain knowledge bases defines a fixed set
+       * of data sources (and their components) that can be
+       * referenced by other objects.
+       *
+       * The MITRE Enterprise & Ics domain defines relationships
+       * between `attack-pattern` and data components explicitly.
+       *
+       * For these domains no additional action must be taken
+       * to extract the respective edges, and, other domains do
+       * not support `x_mitre_data_sources`
+       */
+      if (objJson.has("x_mitre_data_source_ref")) {
+        /*
+         * The respective object is a data component and the
+         * references specifies the associated data source
+         */
+        val source_ref = objJson.get("x_mitre_data_source_ref").getAsString
+        val target_ref = objJson.get("id").getAsString
+
+        /** x-mitre-data-source-[contains]->x-mitre-data-component **/
+
+        val edgeJson = new JsonObject
+        edgeJson.addProperty("src", source_ref)
+        edgeJson.addProperty("dst", target_ref)
+
+        edgeJson.addProperty("type", "contains")
+        edges += edgeJson
+
+      }
 
     })
 
@@ -447,14 +474,13 @@ object MitreGraph extends MitreConnect {
         val deprecated = isDeprecated(objJson)
         val revokedBy = objJson.get("relationship_type").getAsString == "revoked-by"
 
-
         val source = objJson.get("source_ref").getAsString
         val hasSource = nodeIds.contains(source)
 
         val target = objJson.get("target_ref").getAsString
         val hasTarget = nodeIds.contains(target)
 
-        hasSource && hasTarget && (!deprecated)
+        hasSource && hasTarget && (!deprecated) && (!revokedBy)
 
       })
     /*

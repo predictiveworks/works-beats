@@ -19,16 +19,56 @@ package de.kp.works.beats.mitre
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
+import akka.NotUsed
+import akka.actor.{ActorRef, Props}
+import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import com.typesafe.config.Config
 import de.kp.works.beats.handler.OutputHandler
+import de.kp.works.beats.mitre.api.{DataActor, TacticsActor, TechniquesActor}
 import de.kp.works.beats.{BeatsConf, BeatsService}
 
 class MitreService extends BeatsService(BeatsConf.MITRE_CONF) {
 
-  override def onStart(queue: SourceQueueWithComplete[String], plcCfg:Config):Unit = {
+  import MitreActors._
 
-    val receiverCfg = plcCfg.getConfig("receiver")
+  override def buildRoute(queue: SourceQueueWithComplete[String],
+                  source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    val actors = buildApiActors(queue)
+
+    val routes = new MitreRoutes(actors, source)
+    routes.getRoutes
+
+  }
+  /**
+   * The [MitreService] supports the scheduled
+   * retrieval of the MITRE knowledge bases on
+   * the one hand (= receiver), and also enables
+   * HTTP-based interaction with these bases.
+   *
+   * The API actors support specific HTTP routes
+   * to access MITRE domains.
+   */
+  override def buildApiActors(queue: SourceQueueWithComplete[String]):Map[String,ActorRef] = {
+
+    Map(
+      MITRE_DATA_ACTOR ->
+        system.actorOf(Props(new DataActor(queue)), MITRE_DATA_ACTOR),
+
+      MITRE_TACTICS_ACTOR ->
+        system.actorOf(Props(new TacticsActor(queue)), MITRE_TACTICS_ACTOR),
+
+      MITRE_TECHNIQUES_ACTOR ->
+        system.actorOf(Props(new TechniquesActor(queue)), MITRE_TECHNIQUES_ACTOR)
+    )
+
+  }
+
+  override def onStart(queue: SourceQueueWithComplete[String], mitreCfg:Config):Unit = {
+
+    val receiverCfg = mitreCfg.getConfig("receiver")
 
     val interval = receiverCfg.getInt("interval")
     val numThreads = receiverCfg.getInt("numThreads")
@@ -43,7 +83,7 @@ class MitreService extends BeatsService(BeatsConf.MITRE_CONF) {
   private def buildOutputHandler(queue: SourceQueueWithComplete[String]):OutputHandler = {
 
     val outputHandler:OutputHandler = new OutputHandler
-    outputHandler.setNamespace(BeatsConf.PLC_NAME)
+    outputHandler.setNamespace(BeatsConf.MITRE_NAME)
 
     val channel = getOutputCfg.getString("channel")
     outputHandler.setChannel(channel)

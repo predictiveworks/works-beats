@@ -25,7 +25,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import de.kp.works.beats.BeatsLogging
 import de.kp.works.beats.handler.OutputHandler
-import de.kp.works.beats.mitre.MitreActor
+import de.kp.works.beats.mitre.{MitreActor, MitreClient, MitreDomains}
 import de.kp.works.beats.mitre.MitreDomains._
 
 import scala.concurrent.ExecutionContextExecutor
@@ -50,7 +50,22 @@ class LoadActor(outputHandler:OutputHandler) extends Actor with BeatsLogging {
 
       var message = s"Loading MITRE ${req.domain.toString} started"
       info(message)
-
+      /*
+       * Retrieve all MITRE domain specific objects
+       * from the local file system. Do this, also
+       * the memory store is updated.
+       */
+      val domain = req.domain
+      val objects = MitreClient.getObjects(domain = domain, load = true)
+      /*
+       * Determine those domain objects that either
+       * have been created or updated since the last
+       * scheduled retrieval.
+       *
+       * Note, a delta object contains an additional
+       * field `action` with values `create` or `update`
+       */
+      val deltaObjects = MitreLogs.registerAndChanges(domain, objects)
       // TODO
 
       message = s"Loading MITRE ${req.domain.toString} finished"
