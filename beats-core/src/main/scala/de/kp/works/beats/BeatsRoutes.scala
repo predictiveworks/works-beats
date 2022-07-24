@@ -21,19 +21,13 @@ package de.kp.works.beats
 
 import akka.NotUsed
 import akka.actor.ActorRef
-import akka.pattern.ask
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.sse.ServerSentEvent
-import akka.http.scaladsl.model.{HttpProtocols, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.scaladsl.Source
-import akka.util.{ByteString, Timeout}
-import com.google.gson.JsonObject
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 case class Response(status: Try[_])
 
@@ -55,14 +49,9 @@ object BeatsActors {
  * [BeatsRoutes] supports the SSE route of the
  * WorksBeat service.
  */
-class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, NotUsed]) extends CORS {
+class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, NotUsed]) extends BeatsHttp {
 
   import BeatsActors._
-  /**
-   * Common timeout for all Akka connections
-   */
-  val duration: FiniteDuration = 15.seconds
-  implicit val timeout: Timeout = Timeout(duration)
 
   def this(source:Source[ServerSentEvent, NotUsed]) = {
     this(actors=Map.empty[String,ActorRef], source=source)
@@ -105,85 +94,5 @@ class BeatsRoutes(actors:Map[String,ActorRef],source:Source[ServerSentEvent, Not
    * of a certain Works Beat.
    */
   private def postSemantics:Route = routePost("beat/v1/semantics", actors.get(BEATS_SEMANTICS_ACTOR))
-
-  /*******************************
-   *
-   * HELPER METHODS
-   *
-   */
-  def routePost(url:String, actor:Option[ActorRef]):Route = {
-    val matcher = separateOnSlashes(url)
-    path(matcher) {
-      post {
-        /*
-         * The client sends sporadic [HttpEntity.Default]
-         * requests; the [BaseActor] is not able to extract
-         * the respective JSON body from.
-         *
-         * As a workaround, the (small) request is made
-         * explicitly strict
-         */
-        toStrictEntity(duration) {
-          extract(actor)
-        }
-      }
-    }
-  }
-
-  def extract(actor:Option[ActorRef]): Route = {
-    extractRequest { request =>
-      complete {
-        if (actor.isEmpty) {
-          val response = new JsonObject
-          response.addProperty("status", "not supported")
-          jsonResponse(response.toString)
-
-        } else {
-          /*
-           * The Http(s) request is sent to the respective
-           * actor and the actor' response is sent to the
-           * requester as response.
-           */
-          val future = actor.get ? request
-          Await.result(future, timeout.duration) match {
-            case Response(Failure(e)) =>
-              val message = e.getMessage
-              jsonResponse(message)
-            case Response(Success(answer)) =>
-              val message = answer.asInstanceOf[String]
-              jsonResponse(message)
-          }
-
-        }
-      }
-    }
-  }
-
-  protected def extractOptions: RequestContext => Future[RouteResult] = {
-    extractRequest { _ =>
-      complete {
-        baseResponse
-      }
-    }
-  }
-
-  protected def baseResponse: HttpResponse = {
-
-    val response = HttpResponse(
-      status=StatusCodes.OK,
-      protocol = HttpProtocols.`HTTP/1.1`)
-
-    addCorsHeaders(response)
-
-  }
-
-  def jsonResponse(message:String): HttpResponse = {
-
-    HttpResponse(
-      status=StatusCodes.OK,
-      entity = ByteString(message),
-      protocol = HttpProtocols.`HTTP/1.1`)
-
-  }
 
 }
