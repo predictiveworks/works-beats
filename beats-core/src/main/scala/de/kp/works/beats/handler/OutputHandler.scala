@@ -197,6 +197,33 @@ class OutputHandler extends BeatsLogging {
     if (jsonObject.isDefined) sendEvent(jsonObject.get)
 
   }
+  /**
+   * This method publishes the current changes of the
+   * MITRE domain knowledge bases, including CAPEC
+   */
+  def sendMitreEvent(mitreEvent: Option[JsonObject]):Unit = {
+
+    if (namespace.isEmpty) {
+      val message = s"[OutputHandler] No namespace configured to transform a [MitreEvent]."
+      error(message)
+    }
+
+    if (mitreEvent.isDefined) {
+      /*
+       * Build unified SSE event format that is harmonized
+       * with all other Beat event output formats
+       */
+      val eventType = s"beat/$namespace"
+
+      val jsonObject = new JsonObject
+      jsonObject.addProperty("type", eventType)
+      jsonObject.addProperty("event", mitreEvent.get.toString)
+
+      sendEvent(jsonObject)
+
+    }
+
+  }
 
   def sendOpcUaEvent(opcUaEvent: Option[JsonObject]):Unit = {
 

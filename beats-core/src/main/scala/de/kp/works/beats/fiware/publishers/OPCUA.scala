@@ -67,7 +67,7 @@ object OPCUA extends BasePublisher {
 
   protected def publishUpdate(eventJson:JsonObject):Unit = {
     /*
-     * The respective POC-UA entity exists and
+     * The respective OPC-UA entity exists and
      * this request either updates or deletes
      * a certain set of attributes
      *
