@@ -19,6 +19,8 @@ package de.kp.works.beats.mitre.model
  */
 
 import com.google.gson.{JsonElement, JsonObject}
+import de.kp.works.beats.mitre.MitreFormats
+import de.kp.works.beats.mitre.MitreFormats.MitreFormat
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.mutable
@@ -40,9 +42,10 @@ trait MitreExternals {
    * these references.
    *
    * This method supports CAPEC, ENTERPRISE, ICS
-   * and MOBILE
+   * and MOBILE and distinguishes between JSON
+   * and NGSI data format.
    */
-  def extractExternals(objects:Seq[JsonElement]):Seq[JsonObject] = {
+  def extractExternals(objects:Seq[JsonElement], format:MitreFormat = MitreFormats.JSON):Seq[JsonObject] = {
 
     val externals = mutable.ArrayBuffer.empty[JsonObject]
 
@@ -52,35 +55,67 @@ trait MitreExternals {
 
         val efs = objJson.get(EXTERNAL_REFS).getAsJsonArray
         efs.foreach(ef => {
+
           val efJson = ef.getAsJsonObject
           /*
-           * An external reference is described as
-           * a pseudo STIX object, as it is associated
-           * to nodes via and edge.
+           * Extract attributes from the external
+           * reference
            */
-          val tokens = mutable.ArrayBuffer.empty[String]
-          val externalJson = new JsonObject
+          val attributes = EXTERNAL_PROPS.map(prop => {
+            val value = if (efJson.has(prop))
+              efJson.get(prop).getAsString else ""
 
-          EXTERNAL_PROPS.foreach(prop => {
-            if (efJson.has(prop)) {
-              val value = efJson.get(prop).getAsString
+            (prop, value)
 
-              tokens += value
-              externalJson.addProperty(prop, value)
-            } else {
-              tokens += ""
-              externalJson.addProperty(prop, "")
-            }
-          })
+          }).toMap
           /*
-           * Build unique identifier `id` and
-           * object `type`
+           * Build identifier pattern
            */
+          val tokens = attributes.values.toSeq
           val ident = java.util.UUID.fromString(tokens.mkString("|")).toString
-          val id = s"external-reference--$ident"
 
-          externalJson.addProperty("id", id)
-          externalJson.addProperty("type", "external-reference")
+          val externalJson = new JsonObject
+          format match {
+            case MitreFormats.JSON =>
+              /*
+               * Build unique identifier `id` and
+               * object `type`
+               */
+              val id = s"external-reference--$ident"
+
+              externalJson.addProperty("id", id)
+              externalJson.addProperty("type", "external-reference")
+              /*
+               * Assign attributes
+               */
+              attributes.foreach{case(k,v) => externalJson.addProperty(k,v)}
+
+            case MitreFormats.NGSI =>
+
+              val ngsiType = "ExternalReference"
+              val ngsiId = s"urn:ngsi-ld:$ngsiType:$ident"
+
+              externalJson.addProperty("id", ngsiId)
+              externalJson.addProperty("type", ngsiType)
+
+              val action = if (objJson.has("action"))
+                objJson.get("action").getAsString else "create"
+
+              externalJson.addProperty("action", action)
+              /*
+               * Assign attributes
+               */
+              attributes.foreach{case(k,v) =>
+                val attrJson = new JsonObject
+                attrJson.add("metadata", new JsonObject)
+
+                attrJson.addProperty("type", "String")
+                attrJson.addProperty("value", v)
+
+                externalJson.add(k, attrJson)
+              }
+
+          }
 
           externals += externalJson
 

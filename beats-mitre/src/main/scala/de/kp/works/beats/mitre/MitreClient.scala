@@ -54,6 +54,13 @@ object MitreDomains extends Enumeration {
   val MOBILE:MitreDomain     = Value(4, "MOBILE")
 }
 
+object MitreFormats extends Enumeration {
+  type MitreFormat = Value
+
+  val JSON:MitreFormat = Value(1, "JSON")
+  val NGSI:MitreFormat = Value(2, "NGSI")
+}
+
 object MitreClient extends MitreConnect
 
 abstract class MitreConnect extends BeatsLogging {
