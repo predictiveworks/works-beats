@@ -20,7 +20,7 @@ package de.kp.works.beats.mitre
 
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
 
-object MitreRelations extends MitreConnect {
+object MitreTriples extends MitreConnect {
 
   def main(args:Array[String]):Unit = {
 

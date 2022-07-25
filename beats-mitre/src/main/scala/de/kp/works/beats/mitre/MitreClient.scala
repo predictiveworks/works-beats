@@ -334,7 +334,18 @@ abstract class MitreConnect extends BeatsLogging {
 
     var deprecated = false
     var revoked = false
+    /*
+     * For CAPEC objects, whether an object is
+     * deprecated or not, is specified via the
+     * `x_capec_status`
+     */
+    if (objJson.has("x_capec_status"))
+      deprecated = objJson.get("x_capec_status").getAsString == "Deprecated"
 
+    /*
+     * `x_mitre_deprecated` refers to the domains
+     * ENTERPRISE, ICS and MOBILE
+     */
     if (objJson.has("x_mitre_deprecated"))
       deprecated = objJson.get("x_mitre_deprecated").getAsBoolean
 

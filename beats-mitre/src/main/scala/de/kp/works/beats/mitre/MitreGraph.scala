@@ -20,12 +20,12 @@ package de.kp.works.beats.mitre
 
 import com.google.gson.{JsonElement, JsonNull, JsonObject}
 import de.kp.works.beats.mitre.MitreDomains.MitreDomain
-import de.kp.works.beats.mitre.model.MitreTactics
+import de.kp.works.beats.mitre.model.{MitreExternals, MitreTactics}
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
 import scala.collection.mutable
 
-object MitreGraph extends MitreConnect {
+object MitreGraph extends MitreConnect with MitreExternals {
   /*
    * The following object types are
    * not taken into account:
@@ -94,6 +94,21 @@ object MitreGraph extends MitreConnect {
     "name",
     "spec_version",
     "type",
+    /*
+     * CAPEC specific properties
+     */
+    "x_capec_abstraction",
+    "x_capec_extended_description",
+    "x_capec_execution_flow",
+    "x_capec_likelihood_of_attack",
+    "x_capec_status",
+    "x_capec_typical_severity",
+    "x_capec_version",
+    /*
+     * MITRE specific properties, referring
+     * to the domains ENTERPRISE, ICS and
+     * MOBILE
+     */
     "x_mitre_attack_spec_version",
     "x_mitre_is_subtechnique",
     "x_mitre_tactic_type",
@@ -101,6 +116,19 @@ object MitreGraph extends MitreConnect {
 
   val NODE_LIST_PROPERTIES = List(
     "aliases",
+    /*
+     * CAPEC specific properties
+     */
+    "x_capec_alternate_terms",
+    "x_capec_domains",
+    "x_capec_example_instances",
+    "x_capec_prerequisites",
+    "x_capec_resources_required",
+    /*
+     * MITRE specific properties, referring
+     * to the domains ENTERPRISE, ICS and
+     * MOBILE
+     */
     "x_mitre_aliases",
     "x_mitre_contributors",
     /*
@@ -114,6 +142,14 @@ object MitreGraph extends MitreConnect {
      * be threatened by e.g., an attack-pattern
      */
     "x_mitre_platforms"
+  )
+
+  val NODE_OBJECT_PROPERTIES = List(
+    /*
+     * CAPEC specific properties
+     */
+    "x_capec_consequences",
+    "x_capec_skills_required"
   )
 
   val NODE_RELATION_PROPERTIES = List(
@@ -140,6 +176,19 @@ object MitreGraph extends MitreConnect {
      *
      * - "object_marking_refs",
      */
+    /*
+     * CAPEC specific properties
+     */
+    "x_capec_can_follow_refs",
+    "x_capec_can_precede_refs",
+    "x_capec_child_of_refs",
+    "x_capec_parent_of_refs",
+    "x_capec_peer_of_refs",
+    /*
+     * MITRE specific properties, referring
+     * to the domains ENTERPRISE, ICS and
+     * MOBILE
+     */
     "x_mitre_data_source_ref", // Used to reference a data source in a data component
     "x_mitre_data_sources"
     /*
@@ -160,6 +209,7 @@ object MitreGraph extends MitreConnect {
 
   val EDGE_BASE_PROPERTIES = List(
     "created",
+    /* Description is not supported by CAPEC */
     "description",
     "id",
     "modified",
@@ -167,76 +217,43 @@ object MitreGraph extends MitreConnect {
     "source_ref",
     "spec_version",
     "target_ref",
-    "type",
+    "x_capec_version",
+    /*
+     * The `type` properties is ignored
+     * as this is expressed via `edge`
+     *
+     * -"type"
+     */
     "x_mitre_attack_spec_version",
-    "x_mitre_modified_by_ref",
+    /*
+     * For edges of the MITRE domain knowledge
+     * basis, there is one `identity` object,
+     * i.e., the MITRE organization.
+     *
+     * As this is no threat related information,
+     * the `identity`object is ignored.
+     *
+     * - "x_mitre_modified_by_ref",
+     */
     "x_mitre_version")
 
+  /**
+   * The edge list properties below are restricted
+   * to the domains ENTERPRISE, ICS and MOBILE
+   */
   val EDGE_LIST_PROPERTIES = List(
     "x_mitre_domains"
   )
-
+  /**
+   * This implementation does not support n-ary
+   * relations, and therefore the properties
+   * below are ignored.
+   */
   val EDGE_RELATION_PROPERTIES = List(
     "created_by_ref",
     "external_references",
     "object_marking_refs"
   )
-  val EXTERNAL_PROPS = List(
-    "description",
-    "external_id",
-    "source_name",
-    "url"
-  )
-
-  def extractExternals(objects:Seq[JsonElement]):Seq[JsonObject] = {
-
-    val externals = mutable.ArrayBuffer.empty[JsonObject]
-
-    objects.foreach(obj => {
-      val objJson = obj.getAsJsonObject
-      if (objJson.has("external_references")) {
-
-        val efs = objJson.get("external_references").getAsJsonArray
-        efs.foreach(ef => {
-          val efJson = ef.getAsJsonObject
-          /*
-           * An external reference is described as
-           * a pseudo STIX object, as it is associated
-           * to nodes via and edge.
-           */
-          val tokens = mutable.ArrayBuffer.empty[String]
-          val externalJson = new JsonObject
-
-          EXTERNAL_PROPS.foreach(prop => {
-            if (efJson.has(prop)) {
-              val value = efJson.get(prop).getAsString
-
-              tokens += value
-              externalJson.addProperty(prop, value)
-            } else {
-              tokens += ""
-              externalJson.addProperty(prop, "")
-            }
-          })
-          /*
-           * Build unique identifier `id` and
-           * object `type`
-           */
-          val ident = java.util.UUID.fromString(tokens.mkString("|")).toString
-          val id = s"external-reference--$ident"
-
-          externalJson.addProperty("id", id)
-          externalJson.addProperty("type", "external-reference")
-
-          externals += externalJson
-
-        })
-      }
-    })
-
-    externals.distinct
-
-  }
   /**
    * This method extracts the identifiers that
    * defines MITRE based STIX objects.
@@ -318,6 +335,9 @@ object MitreGraph extends MitreConnect {
         })
 
       nodes += nodeJson
+
+      /** EXTERNAL REFERENCES **/
+
       /*
        * Build edges from relation properties: the current
        * implementation is restricted to external references
@@ -355,6 +375,9 @@ object MitreGraph extends MitreConnect {
 
         })
       }
+
+      /** KILL CHAIN PHASES **/
+
       /*
        * The `phase_name` of a certain kill chain phase
        * is equal to the short name of a certain MITRE
@@ -390,6 +413,9 @@ object MitreGraph extends MitreConnect {
         })
 
       }
+
+      /** DATA SOURCES */
+
       /*
        * The MITRE domain knowledge bases defines a fixed set
        * of data sources (and their components) that can be
@@ -421,13 +447,50 @@ object MitreGraph extends MitreConnect {
 
       }
 
+      /** CAPEC RELATIONSHIPS **/
+
+      val capecRelations = Map(
+        "x_capec_can_follow_refs"  -> "can-follow",
+        "x_capec_can_precede_refs" -> "can-precede",
+        "x_capec_child_of_refs"    -> "child-of",
+        "x_capec_parent_of_refs"   -> "parent-of",
+        "x_capec_peer_of_refs"     -> "peer-of")
+
+      capecRelations.foreach{case(k, v) => {
+
+        if (objJson.has(k)) {
+
+          val idents = objJson.get(k).getAsJsonArray
+          idents.foreach(ident => {
+
+            val source_ref = objJson.get("id").getAsString
+            val target_ref = ident.getAsString
+
+            val edgeJson = new JsonObject
+            edgeJson.addProperty("src", source_ref)
+            edgeJson.addProperty("dst", target_ref)
+
+            edgeJson.addProperty("type", v)
+            edges += edgeJson
+
+          })
+        }
+
+      }}
+
     })
 
     (nodes, edges)
 
   }
   /**
-   * This method extracts the following edges:
+   * This method supports CAPEC, ENTERPRISE, ICS and
+   * MOBILE relationships and extracts the following
+   * edges:
+   *
+   * CAPEC:
+   *
+   * course-of-action-[mitigates]->attack-pattern
    *
    * ENTERPRISE:
    *
@@ -472,6 +535,10 @@ object MitreGraph extends MitreConnect {
 
         val objJson = obj.getAsJsonObject
         val deprecated = isDeprecated(objJson)
+        /*
+         * Note, the current implementation of STIX CAPEC
+         * is limited to the relationship_type = mitigates
+         */
         val revokedBy = objJson.get("relationship_type").getAsString == "revoked-by"
 
         val source = objJson.get("source_ref").getAsString
@@ -511,9 +578,12 @@ object MitreGraph extends MitreConnect {
             }
 
           }
-
+          /*
+           * The property value can be NULL, if the relationship
+           * refers to CAPEC and a certain `x_mitre` property is
+           * requested and vice versa.
+           */
           val value = if (objJson.has(prop)) objJson.get(prop) else JsonNull.INSTANCE
-
           prop match {
             case "source_ref" =>
               edgeJson.add("src", value)
@@ -525,7 +595,15 @@ object MitreGraph extends MitreConnect {
               edgeJson.add("type", value)
 
             case _ =>
-              edgeJson.add(prop, value)
+              if (value.isJsonNull) {
+                if (prop.startsWith("x_capec") && domain == MitreDomains.CAPEC)
+                  edgeJson.add(prop, value)
+
+                if (prop.startsWith("x_mitre") && domain != MitreDomains.CAPEC)
+                  edgeJson.add(prop, value)
+
+              } else
+                edgeJson.add(prop, value)
           }
 
         })
