@@ -25,7 +25,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import de.kp.works.beats.BeatsLogging
 import de.kp.works.beats.handler.OutputHandler
-import de.kp.works.beats.mitre.{MitreActor, MitreClient, MitreDomains}
+import de.kp.works.beats.mitre.{MitreActor, MitreClient, MitreDomains, MitreTransform}
 import de.kp.works.beats.mitre.MitreDomains._
 
 import scala.concurrent.ExecutionContextExecutor
@@ -66,7 +66,13 @@ class LoadActor(outputHandler:OutputHandler) extends Actor with BeatsLogging {
        * field `action` with values `create` or `update`
        */
       val deltaObjects = MitreLogs.registerAndChanges(domain, objects)
-      // TODO
+      /*
+       * Transform deltaObjects into an NGSI compliant
+       * MITRE event and send to the output handler for
+       * publication.
+       */
+      val mitreEvent = MitreTransform.transform(deltaObjects)
+      outputHandler.sendMitreEvent(mitreEvent)
 
       message = s"Loading MITRE ${req.domain.toString} finished"
       info(message)
