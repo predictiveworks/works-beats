@@ -116,6 +116,11 @@ abstract class MitreConnect extends BeatsLogging {
     "type",
     "x_mitre_aliases",
     "x_mitre_attack_spec_version",
+    /*
+     * List of places the data can be collected from.
+     * This field is assigned to MITRE data sources.
+     */
+    "x_mitre_collection_layers",
     "x_mitre_contributors",
     "x_mitre_data_sources",
     "x_mitre_defense_bypassed",

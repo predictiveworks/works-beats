@@ -67,7 +67,11 @@ class MitreService extends BeatsService(BeatsConf.MITRE_CONF) {
   }
 
   override def onStart(queue: SourceQueueWithComplete[String], mitreCfg:Config):Unit = {
-
+    /*
+     * Initialize MITRE receiver and output handler
+     * to publish tactics, techniques and common
+     * knowledge about adversaries.
+     */
     val receiverCfg = mitreCfg.getConfig("receiver")
 
     val interval = receiverCfg.getInt("interval")
